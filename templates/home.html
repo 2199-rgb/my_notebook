@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>寒食季的知识库</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* ===== 日间模式变量 ===== */
+        :root {
+            --bg:           #fafaf9;
+            --text:         #2a2a2a;
+            --text-light:   #8a8a8a;
+            --primary:      #4a90d9;
+            --primary-dark: #3a7bc8;
+            --border:       rgba(0, 0, 0, 0.12);
+        }
+
+        /* ===== 暗黑模式覆盖 ===== */
+        body.dark-mode {
+            --bg:           #111111;
+            --text:         #e0e0e0;
+            --text-light:   #666666;
+            --primary:      #7ab0e8;
+            --primary-dark: #5a9fd4;
+            --border:       rgba(255, 255, 255, 0.12);
+        }
+
+        /* ===== 背景 ===== */
+        body {
+            background: var(--bg) !important;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: var(--text);
+            min-height: 100vh;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* ===== 页面主体（全屏居中） ===== */
+        .landing {
+            min-height: calc(100vh - 65px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px 60px;
+            box-sizing: border-box;
+        }
+
+        /* ===== 诗意内容容器 ===== */
+        .landing-center {
+            text-align: center;
+            animation: fadeInUp 1.8s ease both;
+        }
+
+        /* ===== 主标题 ===== */
+        .landing-title {
+            font-size: 52px;
+            font-weight: 300;
+            color: var(--text);
+            letter-spacing: 12px;
+            margin-bottom: 52px;
+            opacity: 0.92;
+            font-family: "Noto Serif SC", "Songti SC", "Kaiti", "STKaiti", "SimSun", serif;
+            transition: color 0.3s ease;
+        }
+
+        /* ===== 动态生存拷问 ===== */
+        #dynamic-greeting {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: 4px;
+            color: var(--text);
+            font-family: "Noto Serif SC", "Songti SC", "Kaiti", "STKaiti", "SimSun", serif;
+            margin-bottom: 44px;
+            animation: greetingBreath 4s ease-in-out infinite;
+            transition: color 0.3s ease;
+        }
+
+        @keyframes greetingBreath {
+            0%, 100% { opacity: 0.80; }
+            50% { opacity: 1; }
+        }
+
+        /* ===== 诗句（随机展示） ===== */
+        .poetry-text {
+            font-family: "Noto Serif SC", "Songti SC", "Kaiti", "STKaiti", "SimSun", serif;
+            font-size: 19px;
+            font-weight: 400;
+            color: var(--text-light);
+            letter-spacing: 6px;
+            line-height: 2.5;
+            text-align: center;
+            transition: color 0.4s ease;
+            margin-bottom: 56px;
+            animation: fadeInPoetry 2.2s ease-in-out both;
+        }
+
+        body.dark-mode .poetry-text {
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.08);
+        }
+
+        /* ===== 按钮容器 ===== */
+        .landing-btns {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* ===== 幽灵胶囊按钮 ===== */
+        .ghost-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            padding: 11px 36px;
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            letter-spacing: 1.5px;
+            text-decoration: none;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.35s ease;
+            z-index: 1;
+        }
+
+        .ghost-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--primary);
+            transform: scaleX(0);
+            transform-origin: left center;
+            transition: transform 0.35s ease;
+            z-index: -1;
+            border-radius: 100px;
+        }
+
+        .ghost-btn:hover {
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        .ghost-btn:hover::before {
+            transform: scaleX(1);
+        }
+
+        /* ===== 淡入上浮动画 ===== */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(28px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== 诗句淡入动画（墨水洇开感） ===== */
+        @keyframes fadeInPoetry {
+            from {
+                opacity: 0;
+                filter: blur(2px);
+            }
+            to {
+                opacity: 1;
+                filter: blur(0);
+            }
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 500px) {
+            .landing-title {
+                font-size: 36px;
+                letter-spacing: 8px;
+                margin-bottom: 40px;
+            }
+            #dynamic-greeting {
+                font-size: 22px;
+                letter-spacing: 2px;
+            }
+            .poetry-text {
+                font-size: 15px;
+                letter-spacing: 3px;
+                line-height: 2.2;
+                margin-bottom: 40px;
+            }
+            .landing-btns {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        /* 极限小屏 360px */
+        @media (max-width: 360px) {
+            .landing-title {
+                font-size: 28px;
+                letter-spacing: 5px;
+                margin-bottom: 32px;
+            }
+            #dynamic-greeting {
+                font-size: 18px;
+                letter-spacing: 1px;
+            }
+            .poetry-text {
+                font-size: 14px;
+                letter-spacing: 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="{{ url_for('home') }}" class="logo" style="font-weight:800;">寒食季的交大生存日记</a>
+        <nav>
+            <a href="{{ url_for('essays') }}">随笔区</a>
+            <a href="{{ url_for('notes') }}">笔记区</a>
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙 暗黑模式</button>
+        </nav>
+    </header>
+
+    <div class="landing">
+        <div class="landing-center">
+            <h1 id="dynamic-greeting" class="landing-title"></h1>
+            <div id="poetry-container" class="poetry-text"></div>
+            <div class="landing-btns">
+                <a href="{{ url_for('essays') }}" class="ghost-btn">进入随笔区</a>
+                <a href="{{ url_for('notes') }}" class="ghost-btn">进入笔记区</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='common.js') }}"></script>
+    <script>
+        // ===== 究极诗词引擎 2.0 =====
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- 动态生存拷问 ---
+            var hour = new Date().getHours();
+            var greeting = '';
+            if (hour >= 6 && hour < 12) {
+                greeting = '系统重启。今天的算力，打算耗费在哪里？';
+            } else if (hour >= 12 && hour < 18) {
+                greeting = '进度条过半。你在创造价值，还是在制造焦虑？';
+            } else if (hour >= 18 && hour < 24) {
+                greeting = '夜深灯火，今夜写代码还是读诗？';
+            } else {
+                greeting = '只有屏幕亮着。是在追赶，还是在逃避？';
+            }
+            var greetingEl = document.getElementById('dynamic-greeting');
+            if (greetingEl) greetingEl.textContent = greeting;
+
+            // --- 诗词盲盒 ---
+            var poetryList = [
+                "春城无处不飞花，<br>寒食东风御柳斜。<br><span style='display:block; text-align:right; font-size:14px; opacity:0.5; margin-top:12px; font-family: sans-serif;'>—— 韩翃《寒食》</span>",
+                "四海同寒食，<br>千秋为一人。<br><span style='display:block; text-align:right; font-size:14px; opacity:0.5; margin-top:12px; font-family: sans-serif;'>—— 卢象《寒食》</span>",
+                "雨中禁火空斋冷，<br>江上流莺独坐听。<br><span style='display:block; text-align:right; font-size:14px; opacity:0.5; margin-top:12px; font-family: sans-serif;'>—— 韦应物《寒食寄京师诸弟》</span>",
+                "自我来黄州，<br>已过三寒食。<br><span style='display:block; text-align:right; font-size:14px; opacity:0.5; margin-top:12px; font-family: sans-serif;'>—— 苏轼《寒食雨二首》</span>",
+                "醉后不知天在水，<br>满船清梦压星河。<br><span style='display:block; text-align:right; font-size:14px; opacity:0.5; margin-top:12px; font-family: sans-serif;'>—— 唐珙《题龙阳县青草湖》</span>",
+                "我见青山多妩媚，<br>料青山见我应如是。<br><span style='display:block; text-align:right; font-size:14px; opacity:0.5; margin-top:12px; font-family: sans-serif;'>—— 辛弃疾《贺新郎》</span>",
+                "一点浩然气，<br>千里快哉风。<br><span style='display:block; text-align:right; font-size:14px; opacity:0.5; margin-top:12px; font-family: sans-serif;'>—— 苏轼《水调歌头》</span>",
+                "疏影横斜水清浅，<br>暗香浮动月黄昏。<br><span style='display:block; text-align:right; font-size:14px; opacity:0.5; margin-top:12px; font-family: sans-serif;'>—— 林逋《山园小梅》</span>",
+                "骑马倚斜桥，<br>满楼红袖招。<br><span style='display:block; text-align:right; font-size:14px; opacity:0.5; margin-top:12px; font-family: sans-serif;'>—— 韦庄《菩萨蛮》</span>",
+                "满堂花醉三千客，<br>一剑霜寒十四州。<br><span style='display:block; text-align:right; font-size:14px; opacity:0.5; margin-top:12px; font-family: sans-serif;'>—— 贯休《献钱尚父》</span>",
+                "衰兰送客咸阳道，<br>天若有情天亦老。<br><span style='display:block; text-align:right; font-size:14px; opacity:0.5; margin-top:12px; font-family: sans-serif;'>—— 李贺《金铜仙人辞汉歌》</span>",
+                "吾不识青天高，黄地厚。<br>唯见月寒日暖，来煎人寿。<br><span style='display:block; text-align:right; font-size:14px; opacity:0.5; margin-top:12px; font-family: sans-serif;'>—— 李贺《苦昼短》</span>",
+                "向河梁、回头万里，故人长绝。<br>易水萧萧西风冷，满座衣冠似雪。<br><span style='display:block; text-align:right; font-size:14px; opacity:0.5; margin-top:12px; font-family: sans-serif;'>—— 辛弃疾《贺新郎》</span>",
+                "少年听雨歌楼上，红烛昏罗帐。<br>壮年听雨客舟中，江阔云低、断雁叫西风。<br>而今听雨僧庐下，鬓已星星也。<br>悲欢离合总无情，一任阶前、点滴到天明。<br><span style='display:block; text-align:right; font-size:14px; opacity:0.5; margin-top:12px; font-family: sans-serif;'>—— 蒋捷《虞美人·听雨》</span>"
+            ];
+            var poetryContainer = document.getElementById('poetry-container');
+            if (poetryContainer) {
+                var randomIndex = Math.floor(Math.random() * poetryList.length);
+                poetryContainer.innerHTML = poetryList[randomIndex];
+            }
+        });
+    </script>
+</body>
+</html>

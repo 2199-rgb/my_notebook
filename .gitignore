@@ -1,0 +1,23 @@
+# 数据库文件
+blog.db
+
+# 上传的笔记和图片（用户数据，不纳入版本控制）
+uploads/
+static/snippet_images/
+
+# Claude Code 内部文件
+.claude/
+memory/
+CLAUDE.md
+
+# Windows bat 脚本（包含本地路径）
+*.bat
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 虚拟环境
+venv/
+.venv/

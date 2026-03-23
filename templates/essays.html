@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>寒食季的知识库</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* ===== 全局 ===== */
+        body {
+            background: var(--bg-page) !important;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: var(--text-primary);
+        }
+
+        /* ===== 布局 ===== */
+        main {
+            max-width: 680px !important;
+            padding: 0 32px 60px !important;
+            margin: 0 auto !important;
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--text-primary);
+            border: none;
+            padding: 0;
+            margin-bottom: 28px;
+            letter-spacing: -0.5px;
+        }
+
+        /* ===== 发布框卡片 ===== */
+        .compose-card {
+            background: var(--bg-card);
+            border-radius: 18px;
+            padding: 24px 24px 20px;
+            box-shadow: var(--shadow-card);
+            border: 1px solid var(--border-card);
+            margin-bottom: 32px;
+            transition: box-shadow 0.25s ease, background 0.3s ease;
+        }
+
+        .compose-area {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+        }
+
+        .compose-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4a90d9, #7c5cdb);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+            letter-spacing: 0;
+        }
+
+        .compose-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .compose-textarea {
+            width: 100%;
+            min-height: 88px;
+            padding: 12px 14px;
+            border: 1.5px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            font-size: 14.5px;
+            font-family: inherit;
+            color: var(--text-primary);
+            background: var(--bg-page);
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            line-height: 1.7;
+            box-sizing: border-box;
+        }
+
+        .compose-textarea::placeholder {
+            color: var(--text-faint);
+        }
+
+        .compose-textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.12);
+        }
+
+        body.dark-mode .compose-textarea {
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .compose-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 12px;
+        }
+
+        .btn-publish {
+            padding: 9px 26px;
+            background: var(--accent);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            letter-spacing: 0.2px;
+        }
+
+        .btn-publish:hover {
+            background: #3a7bc8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(74, 144, 217, 0.35);
+        }
+
+        .btn-publish:active {
+            transform: translateY(0);
+        }
+
+        /* ===== 随笔流 ===== */
+        .essay-feed {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .essay-card {
+            background: var(--bg-card);
+            border-radius: 18px;
+            padding: 22px 24px 20px;
+            box-shadow: var(--shadow-card);
+            border: 1px solid var(--border-card);
+            transition: box-shadow 0.25s ease, background 0.3s ease;
+        }
+
+        .essay-card:hover {
+            box-shadow: var(--shadow-hover);
+        }
+
+        /* 作者头部 */
+        .essay-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .essay-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4a90d9, #7c5cdb);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .essay-author-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .essay-author-name {
+            font-size: 14.5px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: 0.1px;
+        }
+
+        .essay-time {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* 随笔正文 */
+        .essay-content {
+            font-size: 14.5px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin-bottom: 14px;
+        }
+
+        /* 操作栏 */
+        .essay-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .btn-delete-essay {
+            padding: 6px 14px;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border-card);
+            border-radius: 8px;
+            font-size: 12.5px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-delete-essay:hover {
+            background: #fff0f0;
+            color: #e05050;
+            border-color: rgba(224, 80, 80, 0.2);
+        }
+
+        body.dark-mode .btn-delete-essay:hover {
+            background: #2b0d0d;
+            color: #f06f6f;
+            border-color: rgba(240, 111, 111, 0.2);
+        }
+
+        /* ===== 编辑按钮 ===== */
+        .btn-edit-essay {
+            padding: 6px 14px;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border-card);
+            border-radius: 8px;
+            font-size: 12.5px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-right: 8px;
+        }
+
+        .btn-edit-essay:hover {
+            background: #e8f0fb;
+            color: var(--accent);
+            border-color: rgba(74, 144, 217, 0.3);
+        }
+
+        body.dark-mode .btn-edit-essay:hover {
+            background: #1a2a3a;
+            color: #6ab0f5;
+            border-color: rgba(106, 176, 245, 0.3);
+        }
+
+        /* ===== 编辑状态 ===== */
+        .essay-edit-textarea {
+            width: 100%;
+            min-height: 88px;
+            padding: 12px 14px;
+            border: 1.5px solid var(--accent);
+            border-radius: 12px;
+            font-size: 14.5px;
+            font-family: inherit;
+            color: var(--text-primary);
+            background: var(--bg-page);
+            resize: vertical;
+            outline: none;
+            line-height: 1.7;
+            box-sizing: border-box;
+            box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.12);
+            display: none;
+        }
+
+        .btn-save-edit, .btn-cancel-edit {
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 12.5px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-right: 8px;
+        }
+
+        .btn-save-edit {
+            background: var(--accent);
+            color: #ffffff;
+            border: 1px solid var(--accent);
+        }
+
+        .btn-save-edit:hover {
+            background: #3a7bc8;
+        }
+
+        .btn-cancel-edit {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border-card);
+        }
+
+        .btn-cancel-edit:hover {
+            background: var(--bg-hover);
+        }
+
+        .edit-actions {
+            display: none;
+            justify-content: flex-end;
+            margin-top: 12px;
+        }
+
+        .essay-card.editing .essay-content { display: none; }
+        .essay-card.editing .essay-edit-textarea { display: block; }
+        .essay-card.editing .edit-actions { display: flex; }
+        .essay-card.editing .essay-actions { display: none; }
+
+        /* 空状态 */
+        .empty-feed {
+            text-align: center;
+            padding: 60px 24px;
+            color: var(--text-faint);
+            font-size: 15px;
+        }
+
+        /* Flash 消息 */
+        .flash {
+            padding: 13px 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .flash.success { background: var(--flash-success-bg); color: var(--flash-success-color); border: 1px solid rgba(26, 110, 26, 0.15); }
+        .flash.error { background: var(--flash-error-bg); color: var(--flash-error-color); border: 1px solid rgba(192, 57, 43, 0.15); }
+
+        /* ===== 暗黑模式切换按钮 ===== */
+        .theme-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            background: var(--btn-bg);
+            color: var(--btn-color);
+            border: 1px solid var(--btn-border);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .theme-toggle:hover {
+            background: var(--text-primary);
+            color: var(--bg-card);
+            border-color: var(--text-primary);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* 响应式 */
+        @media (max-width: 600px) {
+            main { padding: 0 16px 40px !important; }
+            .essay-card { padding: 18px 16px 16px; }
+            .compose-card { padding: 18px 16px 16px; }
+        }
+
+        /* 手机竖屏 (480px) */
+        @media (max-width: 480px) {
+            .compose-avatar, .essay-avatar { width: 34px; height: 34px; font-size: 14px; }
+            .essay-content { font-size: 14px; }
+            .compose-textarea { min-height: 72px; font-size: 14px; }
+            .essay-actions { gap: 6px; flex-wrap: wrap; }
+            .btn-edit-essay, .btn-delete-essay { padding: 5px 10px; font-size: 12px; }
+            .essay-image { max-width: 100%; }
+        }
+
+        /* 极限小屏 (360px) */
+        @media (max-width: 360px) {
+            .compose-avatar, .essay-avatar { width: 30px; height: 30px; font-size: 13px; }
+            .essay-content { font-size: 13px; }
+        }
+
+        /* ===== 移动端阅读悬浮按钮 ===== */
+        .qr-float-btn {
+            position: fixed;
+            bottom: 24px;
+            left: 24px;
+            z-index: 997;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06);
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            color: var(--text-primary);
+        }
+
+        .qr-float-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(0,0,0,0.16), 0 4px 10px rgba(0,0,0,0.08);
+        }
+
+        body.dark-mode .qr-float-btn {
+            background: #1e1e1e;
+            border-color: rgba(255,255,255,0.08);
+            color: #e0e0e0;
+        }
+
+        /* 移动端 QR 按钮改到右下角，避免左手持机误触 */
+        @media (max-width: 768px) {
+            .qr-float-btn {
+                left: auto !important;
+                right: 24px;
+                bottom: 80px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .qr-float-btn {
+                right: 16px;
+                bottom: 72px;
+                width: 44px;
+                height: 44px;
+                font-size: 18px;
+            }
+        }
+
+        /* ===== 移动端阅读 Modal（二维码） ===== */
+        .qr-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(6px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+
+        .qr-modal-overlay.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .qr-modal-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 18px;
+            padding: 28px 24px 22px;
+            width: 320px;
+            max-width: 90vw;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+            transition: background 0.3s ease;
+        }
+
+        .qr-modal-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            text-align: center;
+            letter-spacing: -0.3px;
+        }
+
+        .qr-modal-sub {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 18px;
+            text-align: center;
+        }
+
+        .qr-modal-cancel {
+            flex: 1;
+            padding: 10px 0;
+            background: var(--bg-hover);
+            color: var(--text-muted);
+            border: 1px solid var(--border-item);
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .qr-modal-cancel:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .qr-url-text {
+            font-size: 11px;
+            color: var(--text-faint);
+            text-align: center;
+            word-break: break-all;
+            padding: 0 4px;
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+
+        /* ===== 发布框底部栏 ===== */
+        .compose-footer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .img-upload-btn {
+            font-size: 20px;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: var(--bg-hover);
+            transition: background 0.2s;
+            user-select: none;
+            line-height: 1;
+        }
+
+        .img-upload-btn:hover {
+            background: #e8f0fb;
+        }
+
+        body.dark-mode .img-upload-btn:hover {
+            background: #2a3a4a;
+        }
+
+        .img-name-display {
+            font-size: 12px;
+            color: var(--text-muted);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* ===== 随笔图片 ===== */
+        .essay-image-wrap {
+            margin-top: 14px;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .essay-image {
+            width: 100%;
+            max-width: 100%;
+            border-radius: 12px;
+            display: block;
+            object-fit: cover;
+            border: 1px solid var(--border-card);
+            transition: border-color 0.3s;
+        }
+
+        body.dark-mode .essay-image {
+            border-color: rgba(255, 255, 255, 0.06);
+        }
+    </style>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+    <header>
+        <div class="brand">
+            <a href="{{ url_for('home') }}">寒食季的交大生存日记</a>
+            <span class="divider">/</span>
+            <span class="current-page">随笔区</span>
+        </div>
+        <nav>
+            <a href="{{ url_for('essays') }}" class="active">随笔区</a>
+            <a href="{{ url_for('notes') }}">笔记区</a>
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙 暗黑模式</button>
+        </nav>
+    </header>
+
+    <main>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message | escape }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <!-- 发布框 -->
+        <div class="compose-card">
+            <form method="POST" action="{{ url_for('add_essay') }}" enctype="multipart/form-data">
+                <div class="compose-area">
+                    <div class="compose-avatar">寒</div>
+                    <div class="compose-body">
+                        <textarea
+                            name="content"
+                            class="compose-textarea"
+                            placeholder="寒食季，今天想说什么..."
+                            required></textarea>
+                    </div>
+                </div>
+                <div class="compose-footer">
+                    <label class="img-upload-btn" for="imgInput" title="添加图片">📷</label>
+                    <input type="file" id="imgInput" name="image" accept="image/*" style="display:none" onchange="handleImgSelect(this)">
+                    <span id="imgName" class="img-name-display"></span>
+                    <button type="submit" class="btn-publish">发布</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 随笔流 -->
+        <div class="essay-feed">
+            {% for essay in essays %}
+            <div class="essay-card" data-id="{{ essay.id }}">
+                <!-- 作者头部 -->
+                <div class="essay-header">
+                    <div class="essay-avatar">寒</div>
+                    <div class="essay-author-info">
+                        <span class="essay-author-name">寒食季</span>
+                        <span class="essay-time">{{ essay.created_at }}</span>
+                    </div>
+                </div>
+                <!-- 正文 -->
+                <div class="essay-content">{{ essay.content }}</div>
+                <!-- 编辑用 textarea -->
+                <textarea class="essay-edit-textarea" id="edit-textarea-{{ essay.id }}">{{ essay.content }}</textarea>
+                <!-- 图片 -->
+                {% if essay.image_path %}
+                <div class="essay-image-wrap">
+                    <img src="{{ url_for('static', filename='snippet_images/' + essay.image_path) }}"
+                         alt="随笔图片"
+                         class="essay-image">
+                </div>
+                {% endif %}
+                <!-- 操作 -->
+                <div class="essay-actions">
+                    <button type="button" class="btn-edit-essay" onclick="enterEditMode({{ essay.id }})">编辑</button>
+                    <form method="POST" action="{{ url_for('delete_essay', essay_id=essay.id) }}">
+                        <button type="submit" class="btn-delete-essay" onclick="return confirm('确定删除？')">删除</button>
+                    </form>
+                </div>
+                <!-- 编辑操作 -->
+                <div class="edit-actions">
+                    <button type="button" class="btn-cancel-edit" onclick="cancelEdit({{ essay.id }})">取消</button>
+                    <button type="button" class="btn-save-edit" onclick="saveEdit({{ essay.id }})">保存</button>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-feed">还没有随笔，写下第一篇吧！</div>
+            {% endfor %}
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='common.js') }}"></script>
+    <script>
+        function handleImgSelect(input) {
+            var nameSpan = document.getElementById('imgName');
+            if (input.files && input.files[0]) {
+                nameSpan.textContent = '  📎 ' + input.files[0].name;
+            } else {
+                nameSpan.textContent = '';
+            }
+        }
+
+        function enterEditMode(essayId) {
+            var card = document.querySelector('.essay-card[data-id="' + essayId + '"]');
+            if (card) {
+                card.classList.add('editing');
+                var textarea = document.getElementById('edit-textarea-' + essayId);
+                if (textarea) {
+                    textarea.focus();
+                }
+            }
+        }
+
+        function cancelEdit(essayId) {
+            var card = document.querySelector('.essay-card[data-id="' + essayId + '"]');
+            if (card) {
+                var textarea = document.getElementById('edit-textarea-' + essayId);
+                if (textarea) {
+                    textarea.value = textarea.defaultValue;
+                }
+                card.classList.remove('editing');
+            }
+        }
+
+        function saveEdit(essayId) {
+            var textarea = document.getElementById('edit-textarea-' + essayId);
+            var content = textarea.value.trim();
+            if (!content) {
+                alert('内容不能为空');
+                return;
+            }
+
+            var formData = new FormData();
+            formData.append('content', content);
+
+            fetch('/essays/edit/' + essayId, {
+                method: 'POST',
+                body: formData
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    var card = document.querySelector('.essay-card[data-id="' + essayId + '"]');
+                    if (card) {
+                        card.querySelector('.essay-content').textContent = content;
+                        card.classList.remove('editing');
+                    }
+                } else {
+                    alert('保存失败：' + (data.error || '未知错误'));
+                }
+            })
+            .catch(function(error) {
+                alert('保存失败：' + error);
+            });
+        }
+    </script>
+
+    <!-- 移动端阅读悬浮按钮 -->
+    <button class="qr-float-btn" onclick="openQrModal()" title="手机/iPad 扫码阅读">📱</button>
+
+    <!-- 移动端阅读 Modal（二维码） -->
+    <div class="qr-modal-overlay" id="qrModal">
+        <div class="qr-modal-box">
+            <div class="qr-modal-title">📱 移动端阅读</div>
+            <p class="qr-modal-sub">用手机或 iPad 扫描二维码，沉浸阅读随笔</p>
+            <div id="qrcode" style="display:flex;align-items:center;justify-content:center;padding:8px 0;"></div>
+            <p id="qrUrl" class="qr-url-text"></p>
+            <div class="qr-modal-actions">
+                <button class="qr-modal-cancel" onclick="closeQrModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        function openQrModal() {
+            var modal = document.getElementById('qrModal');
+            modal.classList.add('open');
+            fetch('/api/get_lan_ip')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var ip = data.ip;
+                    var port = data.port;
+                    var path = location.pathname + location.search;
+                    var fullUrl = 'http://' + ip + ':' + port + path;
+                    document.getElementById('qrUrl').textContent = fullUrl;
+                    var qrDiv = document.getElementById('qrcode');
+                    qrDiv.innerHTML = '';
+                    if (window.qrCodeInstance) { window.qrCodeInstance.clear(); }
+                    window.qrCodeInstance = new QRCode(qrDiv, {
+                        text: fullUrl,
+                        width: 200,
+                        height: 200,
+                        colorDark: '#1a1a1a',
+                        colorLight: '#ffffff',
+                        correctLevel: QRCode.CorrectLevel.M
+                    });
+                })
+                .catch(function() {
+                    document.getElementById('qrcode').innerHTML = '<span style="font-size:13px;color:#e05050;">获取IP失败</span>';
+                });
+        }
+        function closeQrModal() {
+            document.getElementById('qrModal').classList.remove('open');
+        }
+        document.getElementById('qrModal').addEventListener('click', function(e) {
+            if (e.target === this) closeQrModal();
+        });
+    </script>
+</body>
+</html>

@@ -198,6 +198,90 @@
             margin-bottom: 14px;
         }
 
+        /* ===== Emoji 反应 ===== */
+        .essay-reactions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .reaction-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1.5px solid var(--border-card);
+            background: var(--bg-hover);
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: inherit;
+            color: var(--text-muted);
+            line-height: 1;
+        }
+        .reaction-btn .r-count {
+            font-size: 12px;
+            font-weight: 600;
+            min-width: 8px;
+        }
+        .reaction-btn:hover {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            transform: scale(1.08);
+        }
+        .reaction-btn.reacted {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+        /* 展开面板 */
+        .reaction-picker {
+            display: none;
+            flex-wrap: wrap;
+            gap: 4px;
+            padding: 8px 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 14px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+            position: absolute;
+            z-index: 100;
+            margin-top: 4px;
+            width: 400px;
+        }
+        .reaction-picker.open { display: flex; }
+        .picker-emoji {
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px 5px;
+            border-radius: 8px;
+            transition: background 0.12s, transform 0.12s;
+            line-height: 1;
+        }
+        .picker-emoji:hover {
+            background: var(--bg-hover);
+            transform: scale(1.2);
+        }
+        .add-reaction-btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1.5px dashed var(--border-card);
+            background: transparent;
+            font-size: 15px;
+            cursor: pointer;
+            color: var(--text-faint);
+            transition: all 0.15s;
+            font-family: inherit;
+            position: relative;
+        }
+        .add-reaction-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
         /* 操作栏 */
         .essay-actions {
             display: flex;
@@ -636,7 +720,7 @@
                     </div>
                 </div>
                 <!-- 正文 -->
-                <div class="essay-content">{{ essay.content }}</div>
+                <div class="essay-content">{{ essay.content | escape }}</div>
                 <!-- 编辑用 textarea -->
                 <textarea class="essay-edit-textarea" id="edit-textarea-{{ essay.id }}">{{ essay.content }}</textarea>
                 <!-- 图片 -->
@@ -647,6 +731,12 @@
                          class="essay-image">
                 </div>
                 {% endif %}
+                <!-- Emoji 反应 -->
+                <div class="essay-reactions" id="reactions-{{ essay.id }}"></div>
+                <div style="position:relative;display:inline-block;" id="picker-wrap-{{ essay.id }}">
+                    <button class="add-reaction-btn" onclick="togglePicker({{ essay.id }})">＋ 😊</button>
+                    <div class="reaction-picker" id="picker-{{ essay.id }}"></div>
+                </div>
                 <!-- 操作 -->
                 <div class="essay-actions">
                     <button type="button" class="btn-edit-essay" onclick="enterEditMode({{ essay.id }})">编辑</button>
@@ -730,6 +820,79 @@
                 alert('保存失败：' + error);
             });
         }
+        // ===== Emoji 反应 =====
+        var ALL_EMOJIS = [
+            '❤️','😂','🔥','👍','😍','🎉','😭','🤔','👏','💯',
+            '😅','🥹','😎','🤩','😤','💪','🙏','✨','🌟','💡',
+            '📚','🧠','😴','☕','🍕','🎵','🎮','🏆','💔','🤯'
+        ];
+
+        function getReactions(id) {
+            return JSON.parse(localStorage.getItem('reactions_' + id) || '{}');
+        }
+        function saveReactions(id, data) {
+            localStorage.setItem('reactions_' + id, JSON.stringify(data));
+        }
+
+        function renderReactions(id) {
+            var data = getReactions(id);
+            var container = document.getElementById('reactions-' + id);
+            if (!container) return;
+            container.innerHTML = '';
+            Object.keys(data).forEach(function(emoji) {
+                if (!data[emoji]) return;
+                var btn = document.createElement('button');
+                btn.className = 'reaction-btn' + (data[emoji].mine ? ' reacted' : '');
+                btn.innerHTML = emoji + ' <span class="r-count">' + data[emoji].count + '</span>';
+                btn.onclick = function() { toggleReaction(id, emoji); };
+                container.appendChild(btn);
+            });
+        }
+
+        function toggleReaction(id, emoji) {
+            var data = getReactions(id);
+            if (!data[emoji]) data[emoji] = { count: 0, mine: false };
+            if (data[emoji].mine) {
+                data[emoji].count--;
+                data[emoji].mine = false;
+                if (data[emoji].count <= 0) delete data[emoji];
+            } else {
+                data[emoji].count++;
+                data[emoji].mine = true;
+            }
+            saveReactions(id, data);
+            renderReactions(id);
+        }
+
+        function togglePicker(id) {
+            var picker = document.getElementById('picker-' + id);
+            var isOpen = picker.classList.contains('open');
+            document.querySelectorAll('.reaction-picker.open').forEach(function(p) { p.classList.remove('open'); });
+            if (!isOpen) {
+                if (!picker.dataset.built) {
+                    picker.innerHTML = ALL_EMOJIS.map(function(e) {
+                        return '<span class="picker-emoji" onclick="pickEmoji(' + id + ',\'' + e + '\')">' + e + '</span>';
+                    }).join('');
+                    picker.dataset.built = '1';
+                }
+                picker.classList.add('open');
+            }
+        }
+
+        function pickEmoji(id, emoji) {
+            toggleReaction(id, emoji);
+            document.getElementById('picker-' + id).classList.remove('open');
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('[id^="picker-wrap-"]')) {
+                document.querySelectorAll('.reaction-picker.open').forEach(function(p) { p.classList.remove('open'); });
+            }
+        });
+
+        document.querySelectorAll('.essay-card[data-id]').forEach(function(card) {
+            renderReactions(card.dataset.id);
+        });
     </script>
 
     <!-- 移动端阅读悬浮按钮 -->

@@ -398,7 +398,7 @@ def notes():
 
     if selected:
         fpath = os.path.join(app.config['UPLOAD_FOLDER'], selected.replace('/', os.sep))
-        if os.path.exists(fpath):
+        if is_safe_path(app.config['UPLOAD_FOLDER'], fpath) and os.path.exists(fpath):
             with open(fpath, 'r', encoding='utf-8') as f:
                 md_content = f.read()
             html_content = _render_markdown(md_content)
@@ -457,11 +457,10 @@ def upload_note():
     cat_folder = os.path.join(app.config['UPLOAD_FOLDER'], category.replace('/', os.sep))
     os.makedirs(cat_folder, exist_ok=True)
 
-    title = file.filename.replace('.md', '')
+    base_name = file.filename.replace('.md', '')
     # 处理重名
-    base_name = title
     counter = 1
-    filename = title + '.md'
+    filename = base_name + '.md'
     fpath = os.path.join(cat_folder, filename)
     while os.path.exists(fpath):
         filename = f'{base_name}_{counter}.md'
@@ -477,8 +476,8 @@ def upload_note():
     except Exception:
         fts_content = ''
 
-    # 同步 FTS
-    title = title.replace('.md', '')
+    # 同步 FTS（title 与实际文件名保持一致）
+    title = filename.replace('.md', '')
     _sync_fts_insert((category + '/' + filename).replace('\\', '/'), title, fts_content, category)
 
     flash('上传成功！', 'success')

@@ -604,6 +604,175 @@
             margin-top: 12px;
         }
 
+        /* ===== 作者选择器 ===== */
+        .author-select-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-right: auto;
+        }
+
+        .author-select {
+            padding: 5px 10px;
+            border-radius: 8px;
+            border: 1.5px solid rgba(0, 0, 0, 0.08);
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        body.dark-mode .author-select {
+            border-color: rgba(255, 255, 255, 0.12);
+            background: #2a2a2a;
+            color: #e0e0e0;
+        }
+
+        .author-select:focus {
+            border-color: var(--accent);
+        }
+
+        /* ===== 密码验证 Modal ===== */
+        .pwd-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(6px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+
+        .pwd-modal-overlay.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .pwd-modal-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 18px;
+            padding: 32px 28px 26px;
+            width: 360px;
+            max-width: 90vw;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+            transition: background 0.3s ease;
+            text-align: center;
+        }
+
+        .pwd-modal-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        .pwd-modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            letter-spacing: -0.3px;
+        }
+
+        .pwd-modal-sub {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 22px;
+            line-height: 1.6;
+        }
+
+        .pwd-modal-input {
+            width: 100%;
+            padding: 11px 14px;
+            border-radius: 10px;
+            border: 1.5px solid rgba(0, 0, 0, 0.12);
+            background: var(--bg-page);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+            text-align: center;
+            letter-spacing: 4px;
+        }
+
+        body.dark-mode .pwd-modal-input {
+            border-color: rgba(255, 255, 255, 0.12);
+            background: #1e1e1e;
+            color: #e0e0e0;
+        }
+
+        .pwd-modal-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.12);
+        }
+
+        .pwd-modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .pwd-modal-cancel {
+            flex: 1;
+            padding: 10px 0;
+            background: var(--bg-hover);
+            color: var(--text-muted);
+            border: 1px solid var(--border-item);
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .pwd-modal-cancel:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .pwd-modal-confirm {
+            flex: 2;
+            padding: 10px 0;
+            background: var(--accent);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .pwd-modal-confirm:hover {
+            background: #3a7bc8;
+        }
+
+        .pwd-modal-error {
+            font-size: 12px;
+            color: var(--danger);
+            margin-top: 8px;
+            min-height: 16px;
+        }
+
+        .password-input:focus {
+            border-color: var(--accent);
+        }
+
+        .password-hint {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
         .img-upload-btn {
             font-size: 20px;
             cursor: pointer;
@@ -687,18 +856,47 @@
 
         <!-- 发布框 -->
         <div class="compose-card">
-            <form method="POST" action="{{ url_for('add_essay') }}" enctype="multipart/form-data">
+            <form method="POST" action="{{ url_for('add_essay') }}" enctype="multipart/form-data" onsubmit="return handleEssaySubmit()">
                 <div class="compose-area">
-                    <div class="compose-avatar">寒</div>
+                    <div class="compose-avatar" id="composeAvatar">寒</div>
                     <div class="compose-body">
                         <textarea
                             name="content"
                             class="compose-textarea"
-                            placeholder="寒食季，今天想说什么..."
+                            placeholder="选择一个节气，写下你的随笔..."
                             required></textarea>
                     </div>
                 </div>
                 <div class="compose-footer">
+                    <div class="author-select-wrap">
+                        <select name="author_name" class="author-select" id="authorSelect">
+                            <option value="寒食季">🌿 寒食季</option>
+                            <option value="立春">🌱 立春</option>
+                            <option value="雨水">🌦 雨水</option>
+                            <option value="惊蛰">⚡ 惊蛰</option>
+                            <option value="春分">🌸 春分</option>
+                            <option value="清明">🍃 清明</option>
+                            <option value="谷雨">🌧 谷雨</option>
+                            <option value="立夏">☀️ 立夏</option>
+                            <option value="小满">🌾 小满</option>
+                            <option value="芒种">🌿 芒种</option>
+                            <option value="夏至">🌻 夏至</option>
+                            <option value="小暑">🌡 小暑</option>
+                            <option value="大暑">🔥 大暑</option>
+                            <option value="立秋">🍂 立秋</option>
+                            <option value="处暑">🍁 处暑</option>
+                            <option value="白露">💧 白露</option>
+                            <option value="秋分">🌾 秋分</option>
+                            <option value="寒露">🍃 寒露</option>
+                            <option value="霜降">❄️ 霜降</option>
+                            <option value="立冬">🌰 立冬</option>
+                            <option value="小雪">🌨 小雪</option>
+                            <option value="大雪">⛄ 大雪</option>
+                            <option value="冬至">🎄 冬至</option>
+                            <option value="小寒">🥶 小寒</option>
+                            <option value="大寒">🧊 大寒</option>
+                        </select>
+                    </div>
                     <label class="img-upload-btn" for="imgInput" title="添加图片">📷</label>
                     <input type="file" id="imgInput" name="image" accept="image/*" style="display:none" onchange="handleImgSelect(this)">
                     <span id="imgName" class="img-name-display"></span>
@@ -710,12 +908,12 @@
         <!-- 随笔流 -->
         <div class="essay-feed">
             {% for essay in essays %}
-            <div class="essay-card" data-id="{{ essay.id }}">
+            <div class="essay-card" data-id="{{ essay.id }}" data-author="{{ essay.author_name }}">
                 <!-- 作者头部 -->
                 <div class="essay-header">
-                    <div class="essay-avatar">寒</div>
+                    <div class="essay-avatar" style="background: linear-gradient(135deg, var(--avatar-color1, #4a90d9), var(--avatar-color2, #7c5cdb))">{{ essay.author_name[0] }}</div>
                     <div class="essay-author-info">
-                        <span class="essay-author-name">寒食季</span>
+                        <span class="essay-author-name">{{ essay.author_name }}</span>
                         <span class="essay-time">{{ essay.created_at }}</span>
                     </div>
                 </div>
@@ -893,7 +1091,128 @@
         document.querySelectorAll('.essay-card[data-id]').forEach(function(card) {
             renderReactions(card.dataset.id);
         });
+
+        // ===== 作者头像颜色配置 =====
+        var AVATAR_COLORS = {
+            '寒食季':  ['#4a90d9', '#7c5cdb'],
+            '立春':    ['#8BC34A', '#4CAF50'],
+            '雨水':    ['#00BCD4', '#0097A7'],
+            '惊蛰':    ['#673AB7', '#512DA8'],
+            '春分':    ['#4CAF50', '#8BC34A'],
+            '清明':    ['#FF9800', '#FF5722'],
+            '谷雨':    ['#795548', '#5D4037'],
+            '立夏':    ['#F44336', '#E91E63'],
+            '小满':    ['#FF5722', '#FF9800'],
+            '芒种':    ['#FFC107', '#FFB300'],
+            '夏至':    ['#FFEB3B', '#FFF176'],
+            '小暑':    ['#FF9800', '#FF5722'],
+            '大暑':    ['#E91E63', '#9C27B0'],
+            '立秋':    ['#9C27B0', '#673AB7'],
+            '处暑':    ['#673AB7', '#3F51B5'],
+            '白露':    ['#3F51B5', '#2196F3'],
+            '秋分':    ['#00BCD4', '#009688'],
+            '寒露':    ['#009688', '#00695C'],
+            '霜降':    ['#607D8B', '#455A64'],
+            '立冬':    ['#795548', '#3E2723'],
+            '小雪':    ['#78909C', '#546E7A'],
+            '大雪':    ['#90A4AE', '#B0BEC5'],
+            '冬至':    ['#B0BEC5', '#ECEFF1'],
+            '小寒':    ['#546E7A', '#37474F'],
+            '大寒':    ['#37474F', '#263238']
+        };
+
+        function handleEssaySubmit() {
+            var select = document.getElementById('authorSelect');
+            var avatar = document.getElementById('composeAvatar');
+            var author = select.value;
+
+            // 更新发布框头像
+            var colors = AVATAR_COLORS[author] || ['#4a90d9', '#7c5cdb'];
+            avatar.style.background = 'linear-gradient(135deg, ' + colors[0] + ', ' + colors[1] + ')';
+            avatar.textContent = author[0];
+
+            // 寒食季需要密码
+            if (author === '寒食季') {
+                openPwdModal(function(pwd) {
+                    if (pwd === null) return;  // 用户取消
+                    var form = select.closest('form');
+                    var pwdField = document.createElement('input');
+                    pwdField.type = 'hidden';
+                    pwdField.name = 'password';
+                    pwdField.value = pwd;
+                    form.appendChild(pwdField);
+                    form.submit();
+                });
+                return false;
+            }
+            return true;
+        }
+
+        // ===== 密码 Modal 控制 =====
+        var _pwdCallback = null;
+
+        function openPwdModal(callback) {
+            _pwdCallback = callback;
+            var modal = document.getElementById('pwdModal');
+            var input = document.getElementById('pwdInput');
+            var error = document.getElementById('pwdError');
+            input.value = '';
+            error.textContent = '';
+            modal.classList.add('open');
+            setTimeout(function() { input.focus(); }, 100);
+        }
+
+        function closePwdModal(confirmed) {
+            var modal = document.getElementById('pwdModal');
+            var input = document.getElementById('pwdInput');
+            modal.classList.remove('open');
+            if (confirmed) {
+                var pwd = input.value;
+                if (!pwd.trim()) {
+                    document.getElementById('pwdError').textContent = '密码不能为空';
+                    return;
+                }
+                if (_pwdCallback) _pwdCallback(pwd);
+            } else {
+                if (_pwdCallback) _pwdCallback(null);
+            }
+            _pwdCallback = null;
+        }
+
+        // 回车确认
+        document.getElementById('pwdInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') closePwdModal(true);
+        });
+
+        // 点击遮罩关闭
+        document.getElementById('pwdModal').addEventListener('click', function(e) {
+            if (e.target === this) closePwdModal(false);
+        });
+
+        // 初始化卡片头像颜色
+        document.querySelectorAll('.essay-card[data-author]').forEach(function(card) {
+            var author = card.dataset.author;
+            var colors = AVATAR_COLORS[author] || ['#4a90d9', '#7c5cdb'];
+            card.style.setProperty('--avatar-color1', colors[0]);
+            card.style.setProperty('--avatar-color2', colors[1]);
+        });
+
     </script>
+
+    <!-- 密码验证 Modal -->
+    <div class="pwd-modal-overlay" id="pwdModal">
+        <div class="pwd-modal-box">
+            <div class="pwd-modal-icon">🌿</div>
+            <div class="pwd-modal-title">你是寒食季那我是谁？</div>
+            <div class="pwd-modal-sub">快输密码，证明身份</div>
+            <input type="password" class="pwd-modal-input" id="pwdInput" placeholder="请输入密码" autocomplete="off">
+            <div class="pwd-modal-error" id="pwdError"></div>
+            <div class="pwd-modal-actions">
+                <button type="button" class="pwd-modal-cancel" onclick="closePwdModal(false)">取消</button>
+                <button type="button" class="pwd-modal-confirm" onclick="closePwdModal(true)">确认发布</button>
+            </div>
+        </div>
+    </div>
 
     <!-- 移动端阅读悬浮按钮 -->
     <button class="qr-float-btn" onclick="openQrModal()" title="手机/iPad 扫码阅读">📱</button>

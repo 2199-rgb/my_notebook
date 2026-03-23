@@ -182,6 +182,18 @@ def init_db():
         c.execute('ALTER TABLE essays ADD COLUMN image_path TEXT DEFAULT ""')
     except sqlite3.OperationalError:
         pass
+    # 兼容旧数据库：若无 author_name / author_type 列则新增
+    try:
+        c.execute('ALTER TABLE essays ADD COLUMN author_name TEXT DEFAULT "寒食季"')
+    except sqlite3.OperationalError:
+        pass
+    try:
+        c.execute('ALTER TABLE essays ADD COLUMN author_type TEXT DEFAULT "protected"')
+    except sqlite3.OperationalError:
+        pass
+    # 兼容旧数据：为已有随笔填充 author_name（之前的行该列为 NULL）
+    c.execute("UPDATE essays SET author_name = '寒食季' WHERE author_name IS NULL OR author_name = ''")
+    c.execute("UPDATE essays SET author_type = 'protected' WHERE author_type IS NULL OR author_type = ''")
     c.execute('''
         CREATE TABLE IF NOT EXISTS ddls (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -277,6 +289,18 @@ def add_essay():
         flash('内容不能为空', 'error')
         return redirect(url_for('essays'))
 
+    author_name = request.form.get('author_name', '寒食季').strip()
+    password = request.form.get('password', '').strip()
+
+    # 寒食季需要密码验证
+    if author_name == '寒食季':
+        if not password:
+            flash('使用"寒食季"发布需要密码', 'error')
+            return redirect(url_for('essays'))
+        if password != os.environ.get('HANSHIJI_PASSWORD', '1992634518'):
+            flash('密码错误', 'error')
+            return redirect(url_for('essays'))
+
     # 处理图片上传
     image_filename = ''
     file = request.files.get('image')
@@ -299,8 +323,8 @@ def add_essay():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     local_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    c.execute('INSERT INTO essays (content, image_path, created_at) VALUES (?, ?, ?)',
-              (content, image_filename, local_time))
+    c.execute('INSERT INTO essays (content, image_path, created_at, author_name, author_type) VALUES (?, ?, ?, ?, ?)',
+              (content, image_filename, local_time, author_name, 'protected' if author_name == '寒食季' else 'public'))
     conn.commit()
     conn.close()
     flash('发布成功！', 'success')

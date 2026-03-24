@@ -938,9 +938,10 @@
                 <!-- 操作 -->
                 <div class="essay-actions">
                     <button type="button" class="btn-edit-essay" onclick="enterEditMode({{ essay.id }})">编辑</button>
-                    <form method="POST" action="{{ url_for('delete_essay', essay_id=essay.id) }}">
-                        <button type="submit" class="btn-delete-essay" onclick="return confirm('确定删除？')">删除</button>
+                    <form method="POST" action="{{ url_for('delete_essay', essay_id=essay.id) }}" id="delete-form-{{ essay.id }}">
+                        <input type="hidden" name="password" id="delete-pwd-{{ essay.id }}">
                     </form>
+                    <button type="button" class="btn-delete-essay" onclick="confirmDeleteEssay({{ essay.id }}, '{{ essay.author_name }}')">删除</button>
                 </div>
                 <!-- 编辑操作 -->
                 <div class="edit-actions">
@@ -1148,6 +1149,25 @@
             return true;
         }
 
+        // ===== 删除随笔确认 =====
+        function confirmDeleteEssay(essayId, authorName) {
+            if (authorName === '寒食季') {
+                var modal = document.getElementById('pwdModal');
+                document.getElementById('pwdModalTitle').textContent = '删除随笔';
+                document.getElementById('pwdModalSub').textContent = '删除"寒食季"的随笔需要密码';
+                document.getElementById('pwdModalConfirm').textContent = '确认删除';
+                openPwdModal(function(pwd) {
+                    if (pwd === null) return;
+                    document.getElementById('delete-pwd-' + essayId).value = pwd;
+                    document.getElementById('delete-form-' + essayId).submit();
+                });
+                return false;
+            }
+            if (!confirm('确定删除？')) return false;
+            document.getElementById('delete-form-' + essayId).submit();
+            return true;
+        }
+
         // ===== 密码 Modal 控制 =====
         var _pwdCallback = null;
 
@@ -1166,6 +1186,10 @@
             var modal = document.getElementById('pwdModal');
             var input = document.getElementById('pwdInput');
             modal.classList.remove('open');
+            // 重置为发布默认文本
+            document.getElementById('pwdModalTitle').textContent = '你是寒食季那我是谁？';
+            document.getElementById('pwdModalSub').textContent = '快输密码，证明身份';
+            document.getElementById('pwdModalConfirm').textContent = '确认发布';
             if (confirmed) {
                 var pwd = input.value;
                 if (!pwd.trim()) {
@@ -1203,13 +1227,13 @@
     <div class="pwd-modal-overlay" id="pwdModal">
         <div class="pwd-modal-box">
             <div class="pwd-modal-icon">🌿</div>
-            <div class="pwd-modal-title">你是寒食季那我是谁？</div>
-            <div class="pwd-modal-sub">快输密码，证明身份</div>
+            <div class="pwd-modal-title" id="pwdModalTitle">你是寒食季那我是谁？</div>
+            <div class="pwd-modal-sub" id="pwdModalSub">快输密码，证明身份</div>
             <input type="password" class="pwd-modal-input" id="pwdInput" placeholder="请输入密码" autocomplete="off">
             <div class="pwd-modal-error" id="pwdError"></div>
             <div class="pwd-modal-actions">
                 <button type="button" class="pwd-modal-cancel" onclick="closePwdModal(false)">取消</button>
-                <button type="button" class="pwd-modal-confirm" onclick="closePwdModal(true)">确认发布</button>
+                <button type="button" class="pwd-modal-confirm" id="pwdModalConfirm" onclick="closePwdModal(true)">确认发布</button>
             </div>
         </div>
     </div>

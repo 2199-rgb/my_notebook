@@ -335,10 +335,27 @@ def delete_essay(essay_id):
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    # 先查图片路径再删
-    c.execute('SELECT image_path FROM essays WHERE id = ?', (essay_id,))
+    # 先查图片路径和作者再删
+    c.execute('SELECT image_path, author_name FROM essays WHERE id = ?', (essay_id,))
     row = c.fetchone()
-    if row and row['image_path']:
+    if not row:
+        conn.close()
+        flash('随笔不存在', 'error')
+        return redirect(url_for('essays'))
+
+    # 寒食季的随笔需要密码验证
+    if row['author_name'] == '寒食季':
+        password = request.form.get('password', '').strip()
+        if not password:
+            conn.close()
+            flash('删除"寒食季"的随笔需要密码', 'error')
+            return redirect(url_for('essays'))
+        if password != os.environ.get('HANSHIJI_PASSWORD', '1992634518'):
+            conn.close()
+            flash('密码错误', 'error')
+            return redirect(url_for('essays'))
+
+    if row['image_path']:
         img_path = os.path.join(app.config['SNIPPET_IMAGES'], row['image_path'])
         if os.path.exists(img_path):
             os.remove(img_path)
@@ -770,13 +787,13 @@ def search_notes():
 # ===== 获取局域网IP（供前端生成二维码） =====
 @app.route('/api/get_lan_ip', methods=['GET'])
 def get_lan_ip_api():
-    return jsonify({'ip': get_lan_ip(), 'port': 5001}), 200
+    return jsonify({'ip': get_lan_ip(), 'port': 5002}), 200
 
 if __name__ == '__main__':
     lan_ip = get_lan_ip()
     print('=' * 50)
     print('  个人网站已启动！')
-    print(f'  本机访问: http://127.0.0.1:5001')
-    print(f'  局域网访问: http://{lan_ip}:5001')
+    print(f'  本机访问: http://127.0.0.1:5002')
+    print(f'  局域网访问: http://{lan_ip}:5002')
     print('=' * 50)
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    app.run(debug=True, host='0.0.0.0', port=5002)

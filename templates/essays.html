@@ -90,7 +90,7 @@
 
         .compose-textarea:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.12);
+            box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.08);
         }
 
         body.dark-mode .compose-textarea {
@@ -104,27 +104,25 @@
         }
 
         .btn-publish {
-            padding: 9px 26px;
-            background: var(--accent);
-            color: #ffffff;
+            padding: 8px 22px;
+            background: var(--btn-color);
+            color: #fff;
             border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
             cursor: pointer;
             font-family: inherit;
             transition: all 0.2s ease;
-            letter-spacing: 0.2px;
         }
 
         .btn-publish:hover {
-            background: #3a7bc8;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 14px rgba(74, 144, 217, 0.35);
+            opacity: 0.85;
+            transform: scale(0.98);
         }
 
         .btn-publish:active {
-            transform: translateY(0);
+            transform: scale(0.95);
         }
 
         /* ===== 随笔流 ===== */
@@ -613,26 +611,209 @@
         }
 
         .author-select {
-            padding: 5px 10px;
-            border-radius: 8px;
-            border: 1.5px solid rgba(0, 0, 0, 0.08);
-            background: var(--bg-hover);
-            color: var(--text-primary);
+            padding: 6px 32px 6px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-page);
+            color: var(--text-muted);
             font-size: 13px;
             font-family: inherit;
             cursor: pointer;
             outline: none;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, color 0.2s;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
         }
 
         body.dark-mode .author-select {
             border-color: rgba(255, 255, 255, 0.12);
-            background: #2a2a2a;
-            color: #e0e0e0;
+            background-color: #1e1e1e;
+            color: #a0a0a0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
         }
 
         .author-select:focus {
             border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        .btn-add-name {
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-page);
+            color: var(--text-muted);
+            font-size: 12px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
+        }
+
+        .btn-add-name:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* ===== 落款管理弹窗 ===== */
+        .name-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(6px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+        }
+
+        .name-modal-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .name-modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            width: 320px;
+            max-width: 90vw;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transform: translateY(20px);
+            transition: transform 0.2s;
+        }
+
+        .name-modal-overlay.open .name-modal {
+            transform: translateY(0);
+        }
+
+        .name-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .name-modal-close {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .name-modal-close:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .name-modal-body {
+            padding: 16px 20px;
+        }
+
+        .name-input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        #nameModalInput {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-page);
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #nameModalInput:focus {
+            border-color: var(--accent);
+        }
+
+        #confirmNameBtn {
+            padding: 8px 16px;
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            background: var(--accent);
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        #confirmNameBtn:hover {
+            background: var(--accent-hover);
+        }
+
+        .name-list {
+            margin-top: 16px;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+
+        .name-list-empty {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            padding: 20px 0;
+        }
+
+        .name-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .name-list-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .name-list-item span {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .name-delete-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 16px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s, background 0.2s, color 0.2s;
+        }
+
+        .name-list-item:hover .name-delete-btn {
+            opacity: 1;
+        }
+
+        .name-delete-btn:hover {
+            background: #ff6b6b;
+            color: white;
         }
 
         /* ===== 密码验证 Modal ===== */
@@ -774,22 +955,20 @@
         }
 
         .img-upload-btn {
-            font-size: 20px;
+            font-size: 18px;
             cursor: pointer;
             padding: 6px 10px;
-            border-radius: 8px;
-            background: var(--bg-hover);
-            transition: background 0.2s;
+            border-radius: 20px;
+            background: var(--bg-page);
+            border: 1px solid var(--border-color);
+            transition: border-color 0.2s, opacity 0.2s;
             user-select: none;
             line-height: 1;
         }
 
         .img-upload-btn:hover {
-            background: #e8f0fb;
-        }
-
-        body.dark-mode .img-upload-btn:hover {
-            background: #2a3a4a;
+            border-color: var(--accent);
+            opacity: 0.8;
         }
 
         .img-name-display {
@@ -863,13 +1042,15 @@
                         <textarea
                             name="content"
                             class="compose-textarea"
-                            placeholder="选择一个节气，写下你的随笔..."
+                            placeholder="记录当下的灵光..."
                             required></textarea>
                     </div>
                 </div>
                 <div class="compose-footer">
                     <div class="author-select-wrap">
                         <select name="author_name" class="author-select" id="authorSelect">
+                            <option value="">✒️ 署名</option>
+                            <optgroup label="🌿 二十四节气">
                             <option value="寒食季">🌿 寒食季</option>
                             <option value="立春">🌱 立春</option>
                             <option value="雨水">🌦 雨水</option>
@@ -895,7 +1076,11 @@
                             <option value="冬至">🎄 冬至</option>
                             <option value="小寒">🥶 小寒</option>
                             <option value="大寒">🧊 大寒</option>
+                            </optgroup>
+                            <optgroup label="✨ 我的名字" id="customNamesGroup">
+                            </optgroup>
                         </select>
+                        <button type="button" class="btn-add-name" id="addNameBtn">+ 新建</button>
                     </div>
                     <label class="img-upload-btn" for="imgInput" title="添加图片">📷</label>
                     <input type="file" id="imgInput" name="image" accept="image/*" style="display:none" onchange="handleImgSelect(this)">
@@ -1136,13 +1321,83 @@
             '大寒':    ['#37474F', '#263238']
         };
 
+        // ===== 自定义名字 localStorage 操作 =====
+        var CUSTOM_NAMES_KEY = 'essayCustomNames';
+
+        function getCustomNames() {
+            var stored = localStorage.getItem(CUSTOM_NAMES_KEY);
+            if (stored) {
+                try {
+                    return JSON.parse(stored);
+                } catch(e) { return []; }
+            }
+            return [];
+        }
+
+        function saveCustomNames(names) {
+            localStorage.setItem(CUSTOM_NAMES_KEY, JSON.stringify(names));
+        }
+
+        function addCustomName(name) {
+            if (!name || name.trim() === '') return;
+            name = name.trim();
+            var names = getCustomNames();
+            if (names.indexOf(name) !== -1) return;  // 已存在
+            names.push(name);
+            saveCustomNames(names);
+            renderCustomNames();
+            // 选中新添加的名字
+            document.getElementById('authorSelect').value = name;
+            updateComposeAvatar(name);
+        }
+
+        function deleteCustomName(name) {
+            var names = getCustomNames();
+            var idx = names.indexOf(name);
+            if (idx !== -1) {
+                names.splice(idx, 1);
+                saveCustomNames(names);
+                renderCustomNames();
+            }
+        }
+
+        function renderCustomNames() {
+            var group = document.getElementById('customNamesGroup');
+            var names = getCustomNames();
+            group.innerHTML = '';
+            names.forEach(function(name) {
+                var opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = '✨ ' + name;
+                group.appendChild(opt);
+            });
+        }
+
+        // ===== 初始化自定义名字 =====
+        document.addEventListener('DOMContentLoaded', function() {
+            renderCustomNames();
+
+            // authorSelect 切换时更新头像
+            document.getElementById('authorSelect').addEventListener('change', function() {
+                updateComposeAvatar(this.value);
+            });
+        });
+
+        function updateComposeAvatar(author) {
+            if (!author) return;
+            var avatar = document.getElementById('composeAvatar');
+            var colors = AVATAR_COLORS[author] || (getCustomNames().indexOf(author) !== -1 ? ['#6B8E9F', '#5D7A8A'] : ['#4a90d9', '#7c5cdb']);
+            avatar.style.background = 'linear-gradient(135deg, ' + colors[0] + ', ' + colors[1] + ')';
+            avatar.textContent = author[0];
+        }
+
         function handleEssaySubmit() {
             var select = document.getElementById('authorSelect');
             var avatar = document.getElementById('composeAvatar');
             var author = select.value;
 
             // 更新发布框头像
-            var colors = AVATAR_COLORS[author] || ['#4a90d9', '#7c5cdb'];
+            var colors = AVATAR_COLORS[author] || (getCustomNames().indexOf(author) !== -1 ? ['#6B8E9F', '#5D7A8A'] : ['#4a90d9', '#7c5cdb']);
             avatar.style.background = 'linear-gradient(135deg, ' + colors[0] + ', ' + colors[1] + ')';
             avatar.textContent = author[0];
 
@@ -1378,6 +1633,72 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
+        // ===== 落款管理弹窗 =====
+        var nameModal, nameInput, nameList;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            nameModal = document.getElementById('nameModal');
+            nameInput = document.getElementById('nameModalInput');
+            nameList = document.getElementById('nameList');
+
+            document.getElementById('addNameBtn').addEventListener('click', openNameModal);
+            document.getElementById('closeNameModal').addEventListener('click', closeNameModal);
+            nameModal.addEventListener('click', function(e) {
+                if (e.target === nameModal) closeNameModal();
+            });
+
+            document.getElementById('confirmNameBtn').addEventListener('click', function() {
+                var name = nameInput.value.trim();
+                if (name) {
+                    addCustomName(name);
+                    nameInput.value = '';
+                    renderNameList();
+                }
+            });
+
+            nameInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('confirmNameBtn').click();
+                }
+            });
+        });
+
+        function openNameModal() {
+            nameModal.classList.add('open');
+            renderNameList();
+            nameInput.value = '';
+            nameInput.focus();
+        }
+
+        function closeNameModal() {
+            nameModal.classList.remove('open');
+        }
+
+        function renderNameList() {
+            var names = getCustomNames();
+            if (names.length === 0) {
+                nameList.innerHTML = '<div class="name-list-empty">暂无落款，添加一个吧</div>';
+                return;
+            }
+            nameList.innerHTML = names.map(function(name) {
+                return '<div class="name-list-item">' +
+                    '<span>' + name + '</span>' +
+                    '<button class="name-delete-btn" onclick="deleteName(\'' + name + '\')">×</button>' +
+                    '</div>';
+            }).join('');
+        }
+
+        function deleteName(name) {
+            var names = getCustomNames();
+            var idx = names.indexOf(name);
+            if (idx !== -1) {
+                names.splice(idx, 1);
+                saveCustomNames(names);
+                renderNameList();
+                renderCustomNames();
+            }
+        }
+
         function openQrModal() {
             var modal = document.getElementById('qrModal');
             modal.classList.add('open');
@@ -1412,5 +1733,22 @@
             if (e.target === this) closeQrModal();
         });
     </script>
+
+    <!-- 落款管理弹窗 -->
+    <div class="name-modal-overlay" id="nameModal">
+        <div class="name-modal">
+            <div class="name-modal-header">
+                <span>落款管理</span>
+                <button class="name-modal-close" id="closeNameModal">×</button>
+            </div>
+            <div class="name-modal-body">
+                <div class="name-input-row">
+                    <input type="text" id="nameModalInput" placeholder="输入新落款" maxlength="10">
+                    <button id="confirmNameBtn">添加</button>
+                </div>
+                <div class="name-list" id="nameList"></div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

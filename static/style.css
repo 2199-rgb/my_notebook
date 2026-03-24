@@ -529,3 +529,23 @@ pre {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
 }
+
+/* ===== PDF 预览容器 ===== */
+.pdf-preview-wrapper {
+    margin-top: 20px;
+    padding: 4px;
+    border: 1px solid var(--border-color, var(--border));
+    border-radius: 12px;
+    box-shadow: 0 8px 24px var(--shadow);
+    height: calc(100vh - 180px);
+    overflow: hidden;
+    background: transparent;
+}
+
+.pdf-preview-wrapper iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 8px;
+    display: block;
+}

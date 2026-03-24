@@ -362,6 +362,17 @@
         /* Markdown 内容 */
         .md-wrapper { padding: 0; }
 
+        /* PDF 内容 */
+        .pdf-wrapper {
+            padding: 0;
+            width: 100%;
+            height: calc(100vh - 180px);
+        }
+
+        body.zen-mode .pdf-wrapper {
+            height: calc(100vh - 120px);
+        }
+
         .md-editor-wrap {
             padding: 0;
         }
@@ -1708,8 +1719,8 @@
                         </div>
                         <!-- 文件选择 -->
                         <label class="upload-btn" style="margin-top:8px;">
-                            ＋ 选择 .md 文件
-                            <input type="file" name="file" accept=".md" style="display:none;" id="fileInput" onchange="submitUpload()">
+                            ＋ 选择文件
+                            <input type="file" name="file" accept=".md,.pdf" style="display:none;" id="fileInput" onchange="submitUpload()">
                         </label>
                     </form>
                     <!-- 新建笔记入口 -->
@@ -1740,11 +1751,19 @@
                         </summary>
                         <div class="cat-notes">
                             {% for note in cat_notes %}
+                            {% if note.is_markdown %}
                             <a href="{{ url_for('notes') }}?note={{ note.full_path | urlencode }}"
                                class="note-list-item {% if current_note and current_note.full_path == note.full_path %}active{% endif %}">
-                                <span class="note-name">{{ note.title }}</span>
+                                <span class="note-name">📄 {{ note.title }}</span>
                                 <span class="note-time">{{ note.mtime }}</span>
                             </a>
+                            {% else %}
+                            <a href="{{ url_for('notes') }}?note={{ note.full_path | urlencode }}"
+                               class="note-list-item {% if current_note and current_note.full_path == note.full_path %}active{% endif %}">
+                                <span class="note-name">📕 {{ note.title }}</span>
+                                <span class="note-time">{{ note.mtime }}</span>
+                            </a>
+                            {% endif %}
                             {% else %}
                             <div class="sidebar-empty" style="padding:12px 10px;font-size:12px;">暂无笔记</div>
                             {% endfor %}
@@ -1790,6 +1809,7 @@
             <div class="notes-main">
                 {% if current_note %}
                     <!-- 单篇笔记视图：恢复单卡片 -->
+                    {% if current_note.is_markdown %}
                     <div class="note-card">
                         <div class="note-card-header">
                             <div>
@@ -1800,7 +1820,7 @@
                                 <a href="{{ url_for('notes') }}" class="btn-back">← 返回</a>
                                 <button class="btn-edit" id="editBtn" onclick="enterEditMode('{{ current_note.full_path }}')">✏️ 编辑</button>
                                 <button class="btn-zen" id="zenBtn" onclick="toggleZen()">🧘‍♂️ 禅定</button>
-                                <a class="btn-download" id="downloadBtn" href="/download_md?path={{ current_note.full_path }}" download="{{ current_note.title }}.md">⬇️ 下载</a>
+                                <a class="btn-download" id="downloadBtn" href="{{ url_for('download_file') }}?path={{ current_note.full_path }}" download="{{ current_note.title }}.md">⬇️ 下载</a>
                                 <button class="btn-download" id="printBtn" onclick="window.print()">🖨️ 打印</button>
                                 <button class="btn-save" id="saveBtn" onclick="saveEdit('{{ current_note.full_path }}')" style="display:none;">💾 保存</button>
                                 <button class="btn-cancel-edit" id="cancelBtn" onclick="cancelEdit()" style="display:none;">❌ 取消</button>
@@ -1817,6 +1837,34 @@
                             <textarea id="mdEditor" class="md-editor"></textarea>
                         </div>
                     </div>
+                    {% else %}
+                    <!-- PDF 文件视图 -->
+                    <div class="note-card">
+                        <div class="note-card-header">
+                            <div>
+                                <div class="note-card-title">
+                                    📕 {{ current_note.title }}.{{ current_note.file_type }}
+                                </div>
+                                <div class="note-card-meta">🕐 {{ current_note.mtime }}</div>
+                            </div>
+                            <div class="card-actions">
+                                <a href="{{ url_for('notes') }}" class="btn-back">← 返回</a>
+                                <button class="btn-zen" id="zenBtn" onclick="toggleZen()">🧘‍♂️ 禅定</button>
+                                <a class="btn-download" href="{{ url_for('download_file') }}?path={{ current_note.full_path }}" download="{{ current_note.filename }}">⬇️ 下载</a>
+                                <form method="POST" action="{{ url_for('delete_note') }}" id="deleteForm">
+                                    <input type="hidden" name="filename" value="{{ current_note.full_path }}">
+                                    <button type="submit" class="btn-delete" id="deleteBtn">删除</button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="pdf-preview-wrapper" id="pdfWrapper">
+                            <iframe src="{{ url_for('view_file', path=current_note.full_path) }}#toolbar=0&navpanes=0&view=FitH"
+                                    type="application/pdf"
+                                    frameborder="0"
+                                    allowfullscreen></iframe>
+                        </div>
+                    </div>
+                    {% endif %}
 
                     <!-- 目录悬浮开关按钮 -->
                     <button class="toc-toggle" id="tocToggle" onclick="toggleTOC()" title="目录">📑</button>

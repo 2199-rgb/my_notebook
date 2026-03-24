@@ -371,12 +371,27 @@ def edit_essay(essay_id):
     content = request.form.get('content', '').strip()
     if not content:
         return {'error': '内容不能为空'}, 400
+
+    # 先查作者，寒食季的随笔需要密码验证
     conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute('UPDATE essays SET content = ? WHERE id = ?', (content, essay_id))
-    if c.rowcount == 0:
+    c.execute('SELECT author_name FROM essays WHERE id = ?', (essay_id,))
+    row = c.fetchone()
+    if not row:
         conn.close()
         return {'error': '随笔不存在'}, 404
+
+    if row['author_name'] == '寒食季':
+        password = request.form.get('password', '').strip()
+        if not password:
+            conn.close()
+            return {'error': '编辑寒食季的随笔需要密码'}, 403
+        if password != os.environ.get('HANSHIJI_PASSWORD', '1992634518'):
+            conn.close()
+            return {'error': '密码错误'}, 403
+
+    c.execute('UPDATE essays SET content = ? WHERE id = ?', (content, essay_id))
     conn.commit()
     conn.close()
     return {'success': True}, 200
@@ -394,11 +409,12 @@ def notes():
             if os.path.isdir(path):
                 categories[item] = []
 
-    # 第二步：遍历所有 .md 文件，填入对应分类
+    # 第二步：遍历所有支持的文件，填入对应分类
     if os.path.exists(app.config['UPLOAD_FOLDER']):
         for root, dirs, files in os.walk(app.config['UPLOAD_FOLDER']):
             for fname in files:
-                if not fname.endswith('.md'):
+                ext = fname.rsplit('.', 1)[-1].lower() if '.' in fname else ''
+                if ext not in ('md', 'pdf'):
                     continue
                 fpath = os.path.join(root, fname)
                 rel = os.path.relpath(fpath, app.config['UPLOAD_FOLDER'])
@@ -414,11 +430,13 @@ def notes():
                 # html_content 不再预渲染（节省内存）；单篇阅读时在 current_note 中单独渲染
                 entry = {
                     'filename': fname,
-                    'title': fname.replace('.md', ''),
+                    'title': fname.rsplit('.', 1)[0] if '.' in fname else fname,
                     'mtime': mtime_str,
                     'mtime_ts': mtime,
                     'category': category,
                     'full_path': rel.replace('\\', '/'),
+                    'file_type': ext,
+                    'is_markdown': ext == 'md',
                 }
 
                 if category not in categories:
@@ -440,18 +458,31 @@ def notes():
     if selected:
         fpath = os.path.join(app.config['UPLOAD_FOLDER'], selected.replace('/', os.sep))
         if is_safe_path(app.config['UPLOAD_FOLDER'], fpath) and os.path.exists(fpath):
-            with open(fpath, 'r', encoding='utf-8') as f:
-                md_content = f.read()
-            html_content = _render_markdown(md_content)
             mtime = os.path.getmtime(fpath)
             fname = os.path.basename(fpath)
-            current_note = {
-                'title': fname.replace('.md', ''),
-                'filename': fname,
-                'full_path': selected,
-                'mtime': datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M'),
-                'html_content': html_content
-            }
+            ext = fname.rsplit('.', 1)[-1].lower() if '.' in fname else ''
+            if ext == 'md':
+                with open(fpath, 'r', encoding='utf-8') as f:
+                    md_content = f.read()
+                html_content = _render_markdown(md_content)
+                current_note = {
+                    'title': fname.replace('.md', ''),
+                    'filename': fname,
+                    'full_path': selected,
+                    'mtime': datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M'),
+                    'html_content': html_content,
+                    'file_type': 'md',
+                    'is_markdown': True,
+                }
+            else:
+                current_note = {
+                    'title': fname.rsplit('.', 1)[0] if '.' in fname else fname,
+                    'filename': fname,
+                    'full_path': selected,
+                    'mtime': datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M'),
+                    'file_type': ext,
+                    'is_markdown': False,
+                }
 
     # 读取 DDL 数据
     conn_ddl = sqlite3.connect(DB_NAME)
@@ -478,8 +509,12 @@ def upload_note():
     if file.filename == '':
         flash('没有选择文件', 'error')
         return redirect(url_for('notes'))
-    if not file.filename.endswith('.md'):
-        flash('只能上传 .md 文件', 'error')
+
+    # 允许的文件类型
+    allowed_exts = ('.md', '.pdf')
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+    if ('.' + ext) not in allowed_exts:
+        flash('只能上传 .md, .pdf 文件', 'error')
         return redirect(url_for('notes'))
 
     # 检查文件大小
@@ -498,27 +533,29 @@ def upload_note():
     cat_folder = os.path.join(app.config['UPLOAD_FOLDER'], category.replace('/', os.sep))
     os.makedirs(cat_folder, exist_ok=True)
 
-    base_name = file.filename.replace('.md', '')
-    # 处理重名
+    # 处理重名，保留原扩展名
+    base_name = file.filename.rsplit('.', 1)[0] if '.' in file.filename else file.filename
     counter = 1
-    filename = base_name + '.md'
+    filename = file.filename
     fpath = os.path.join(cat_folder, filename)
     while os.path.exists(fpath):
-        filename = f'{base_name}_{counter}.md'
+        filename = f'{base_name}_{counter}.{ext}'
         fpath = os.path.join(cat_folder, filename)
         counter += 1
 
     file.save(fpath)
 
-    # 读取文件内容用于 FTS 索引
-    try:
-        with open(fpath, 'r', encoding='utf-8') as f:
-            fts_content = f.read()
-    except Exception:
-        fts_content = ''
+    # 读取文件内容用于 FTS 索引（仅 .md 文件）
+    fts_content = ''
+    if ext == 'md':
+        try:
+            with open(fpath, 'r', encoding='utf-8') as f:
+                fts_content = f.read()
+        except Exception:
+            fts_content = ''
 
     # 同步 FTS（title 与实际文件名保持一致）
-    title = filename.replace('.md', '')
+    title = filename.rsplit('.', 1)[0] if '.' in filename else filename
     _sync_fts_insert((category + '/' + filename).replace('\\', '/'), title, fts_content, category)
 
     flash('上传成功！', 'success')
@@ -647,6 +684,32 @@ def download_md():
     if not os.path.exists(fpath):
         return '文件不存在', 404
     return send_file(fpath, as_attachment=True, download_name=os.path.basename(full_path))
+
+@app.route('/download_file', methods=['GET'])
+def download_file():
+    """通用文件下载路由，支持所有文件类型"""
+    full_path = request.args.get('path', '')
+    if not full_path:
+        return '缺少 path 参数', 400
+    fpath = os.path.join(app.config['UPLOAD_FOLDER'], full_path.replace('/', os.sep))
+    if not is_safe_path(app.config['UPLOAD_FOLDER'], fpath):
+        return '非法路径', 403
+    if not os.path.exists(fpath):
+        return '文件不存在', 404
+    return send_file(fpath, as_attachment=True, download_name=os.path.basename(full_path))
+
+@app.route('/view_file', methods=['GET'])
+def view_file():
+    """PDF 等文件内联预览路由，浏览器直接渲染而不触发下载"""
+    full_path = request.args.get('path', '')
+    if not full_path:
+        return '缺少 path 参数', 400
+    fpath = os.path.join(app.config['UPLOAD_FOLDER'], full_path.replace('/', os.sep))
+    if not is_safe_path(app.config['UPLOAD_FOLDER'], fpath):
+        return '非法路径', 403
+    if not os.path.exists(fpath):
+        return '文件不存在', 404
+    return send_file(fpath, as_attachment=False)
 
 # ===== DDL 倒计时 =====
 @app.route('/add_ddl', methods=['POST'])

@@ -946,7 +946,7 @@
                 <!-- 编辑操作 -->
                 <div class="edit-actions">
                     <button type="button" class="btn-cancel-edit" onclick="cancelEdit({{ essay.id }})">取消</button>
-                    <button type="button" class="btn-save-edit" onclick="saveEdit({{ essay.id }})">保存</button>
+                    <button type="button" class="btn-save-edit" onclick="saveEdit({{ essay.id }}, '{{ essay.author_name }}')">保存</button>
                 </div>
             </div>
             {% else %}
@@ -988,7 +988,7 @@
             }
         }
 
-        function saveEdit(essayId) {
+        function saveEdit(essayId, authorName) {
             var textarea = document.getElementById('edit-textarea-' + essayId);
             var content = textarea.value.trim();
             if (!content) {
@@ -996,28 +996,42 @@
                 return;
             }
 
-            var formData = new FormData();
-            formData.append('content', content);
+            function doSave(pwd) {
+                var formData = new FormData();
+                formData.append('content', content);
+                if (pwd) formData.append('password', pwd);
 
-            fetch('/essays/edit/' + essayId, {
-                method: 'POST',
-                body: formData
-            })
-            .then(function(response) { return response.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    var card = document.querySelector('.essay-card[data-id="' + essayId + '"]');
-                    if (card) {
-                        card.querySelector('.essay-content').textContent = content;
-                        card.classList.remove('editing');
+                fetch('/essays/edit/' + essayId, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        var card = document.querySelector('.essay-card[data-id="' + essayId + '"]');
+                        if (card) {
+                            card.querySelector('.essay-content').textContent = content;
+                            card.classList.remove('editing');
+                        }
+                    } else {
+                        alert('保存失败：' + (data.error || '未知错误'));
                     }
-                } else {
-                    alert('保存失败：' + (data.error || '未知错误'));
-                }
-            })
-            .catch(function(error) {
-                alert('保存失败：' + error);
-            });
+                })
+                .catch(function(error) {
+                    alert('保存失败：' + error);
+                });
+            }
+
+            // 寒食季的随笔需要密码验证（使用独立编辑密码框，不干扰发布/删除）
+            if (authorName === '寒食季') {
+                openEditPwdModal(function(pwd) {
+                    if (pwd === null) return;
+                    doSave(pwd);
+                });
+                return;
+            }
+
+            doSave(null);
         }
         // ===== Emoji 反应 =====
         var ALL_EMOJIS = [
@@ -1152,11 +1166,7 @@
         // ===== 删除随笔确认 =====
         function confirmDeleteEssay(essayId, authorName) {
             if (authorName === '寒食季') {
-                var modal = document.getElementById('pwdModal');
-                document.getElementById('pwdModalTitle').textContent = '删除随笔';
-                document.getElementById('pwdModalSub').textContent = '删除"寒食季"的随笔需要密码';
-                document.getElementById('pwdModalConfirm').textContent = '确认删除';
-                openPwdModal(function(pwd) {
+                openDeletePwdModal(function(pwd) {
                     if (pwd === null) return;
                     document.getElementById('delete-pwd-' + essayId).value = pwd;
                     document.getElementById('delete-form-' + essayId).submit();
@@ -1168,7 +1178,7 @@
             return true;
         }
 
-        // ===== 密码 Modal 控制 =====
+        // ===== 密码 Modal 控制（发布，仅发布操作使用） =====
         var _pwdCallback = null;
 
         function openPwdModal(callback) {
@@ -1203,14 +1213,96 @@
             _pwdCallback = null;
         }
 
+        // ===== 编辑随笔密码 Modal 控制（独立，与发布/删除互不干扰） =====
+        var _editPwdCallback = null;
+
+        function openEditPwdModal(callback) {
+            _editPwdCallback = callback;
+            var modal = document.getElementById('editPwdModal');
+            var input = document.getElementById('editPwdInput');
+            var error = document.getElementById('editPwdError');
+            input.value = '';
+            error.textContent = '';
+            modal.classList.add('open');
+            setTimeout(function() { input.focus(); }, 100);
+        }
+
+        function closeEditPwdModal(confirmed) {
+            var modal = document.getElementById('editPwdModal');
+            var input = document.getElementById('editPwdInput');
+            modal.classList.remove('open');
+            if (confirmed) {
+                var pwd = input.value;
+                if (!pwd.trim()) {
+                    document.getElementById('editPwdError').textContent = '密码不能为空';
+                    return;
+                }
+                if (_editPwdCallback) _editPwdCallback(pwd);
+            } else {
+                if (_editPwdCallback) _editPwdCallback(null);
+            }
+            _editPwdCallback = null;
+        }
+
         // 回车确认
         document.getElementById('pwdInput').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') closePwdModal(true);
         });
 
+        // 编辑密码框回车确认
+        document.getElementById('editPwdInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') closeEditPwdModal(true);
+        });
+
         // 点击遮罩关闭
         document.getElementById('pwdModal').addEventListener('click', function(e) {
             if (e.target === this) closePwdModal(false);
+        });
+
+        // 编辑密码框点击遮罩关闭
+        document.getElementById('editPwdModal').addEventListener('click', function(e) {
+            if (e.target === this) closeEditPwdModal(false);
+        });
+
+        // ===== 删除随笔密码 Modal 控制（独立，与发布/编辑互不干扰） =====
+        var _deletePwdCallback = null;
+
+        function openDeletePwdModal(callback) {
+            _deletePwdCallback = callback;
+            var modal = document.getElementById('deletePwdModal');
+            var input = document.getElementById('deletePwdInput');
+            var error = document.getElementById('deletePwdError');
+            input.value = '';
+            error.textContent = '';
+            modal.classList.add('open');
+            setTimeout(function() { input.focus(); }, 100);
+        }
+
+        function closeDeletePwdModal(confirmed) {
+            var modal = document.getElementById('deletePwdModal');
+            var input = document.getElementById('deletePwdInput');
+            modal.classList.remove('open');
+            if (confirmed) {
+                var pwd = input.value;
+                if (!pwd.trim()) {
+                    document.getElementById('deletePwdError').textContent = '密码不能为空';
+                    return;
+                }
+                if (_deletePwdCallback) _deletePwdCallback(pwd);
+            } else {
+                if (_deletePwdCallback) _deletePwdCallback(null);
+            }
+            _deletePwdCallback = null;
+        }
+
+        // 删除密码框回车确认
+        document.getElementById('deletePwdInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') closeDeletePwdModal(true);
+        });
+
+        // 删除密码框点击遮罩关闭
+        document.getElementById('deletePwdModal').addEventListener('click', function(e) {
+            if (e.target === this) closeDeletePwdModal(false);
         });
 
         // 初始化卡片头像颜色
@@ -1223,7 +1315,7 @@
 
     </script>
 
-    <!-- 密码验证 Modal -->
+    <!-- 密码验证 Modal（发布专用） -->
     <div class="pwd-modal-overlay" id="pwdModal">
         <div class="pwd-modal-box">
             <div class="pwd-modal-icon">🌿</div>
@@ -1234,6 +1326,36 @@
             <div class="pwd-modal-actions">
                 <button type="button" class="pwd-modal-cancel" onclick="closePwdModal(false)">取消</button>
                 <button type="button" class="pwd-modal-confirm" id="pwdModalConfirm" onclick="closePwdModal(true)">确认发布</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑随笔密码验证 Modal（独立，不与其他操作混用） -->
+    <div class="pwd-modal-overlay" id="editPwdModal">
+        <div class="pwd-modal-box">
+            <div class="pwd-modal-icon">✏️</div>
+            <div class="pwd-modal-title" id="editPwdModalTitle">编辑随笔</div>
+            <div class="pwd-modal-sub" id="editPwdModalSub">编辑"寒食季"的随笔需要密码</div>
+            <input type="password" class="pwd-modal-input" id="editPwdInput" placeholder="请输入密码" autocomplete="off">
+            <div class="pwd-modal-error" id="editPwdError"></div>
+            <div class="pwd-modal-actions">
+                <button type="button" class="pwd-modal-cancel" onclick="closeEditPwdModal(false)">取消</button>
+                <button type="button" class="pwd-modal-confirm" onclick="closeEditPwdModal(true)">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除随笔密码验证 Modal（独立，不与其他操作混用） -->
+    <div class="pwd-modal-overlay" id="deletePwdModal">
+        <div class="pwd-modal-box">
+            <div class="pwd-modal-icon">🗑️</div>
+            <div class="pwd-modal-title" id="deletePwdModalTitle">删除随笔</div>
+            <div class="pwd-modal-sub" id="deletePwdModalSub">删除"寒食季"的随笔需要密码</div>
+            <input type="password" class="pwd-modal-input" id="deletePwdInput" placeholder="请输入密码" autocomplete="off">
+            <div class="pwd-modal-error" id="deletePwdError"></div>
+            <div class="pwd-modal-actions">
+                <button type="button" class="pwd-modal-cancel" onclick="closeDeletePwdModal(false)">取消</button>
+                <button type="button" class="pwd-modal-confirm" onclick="closeDeletePwdModal(true)">确认删除</button>
             </div>
         </div>
     </div>

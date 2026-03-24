@@ -787,13 +787,13 @@ def search_notes():
 # ===== 获取局域网IP（供前端生成二维码） =====
 @app.route('/api/get_lan_ip', methods=['GET'])
 def get_lan_ip_api():
-    return jsonify({'ip': get_lan_ip(), 'port': 5002}), 200
+    return jsonify({'ip': get_lan_ip(), 'port': 5001}), 200
 
 if __name__ == '__main__':
     lan_ip = get_lan_ip()
     print('=' * 50)
     print('  个人网站已启动！')
-    print(f'  本机访问: http://127.0.0.1:5002')
-    print(f'  局域网访问: http://{lan_ip}:5002')
+    print(f'  本机访问: http://127.0.0.1:5001')
+    print(f'  局域网访问: http://{lan_ip}:5001')
     print('=' * 50)
-    app.run(debug=True, host='0.0.0.0', port=5002)
+    app.run(debug=True, host='0.0.0.0', port=5001)

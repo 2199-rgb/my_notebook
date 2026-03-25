@@ -7,9 +7,11 @@ import shutil
 import socket
 import sqlite3
 import markdown
-from flask import Flask, render_template, request, redirect, url_for, flash, send_file, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, send_file, jsonify, g
 from werkzeug.utils import secure_filename
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+CST = timezone(timedelta(hours=8))  # 强制北京时间，防止服务器时区差异
 
 
 def get_lan_ip():
@@ -94,9 +96,112 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['SNIPPET_IMAGES'], exist_ok=True)
 
 DB_NAME = os.path.join(BASE_DIR, 'blog.db')
+NOTE_INDEX_CACHE = None
+NOTE_INDEX_CACHE_MTIME = None
+HANSHIJI_PASSWORD = os.environ.get('HANSHIJI_PASSWORD', '1992634518')
 
 # ===== 分类系统常量与工具 =====
 UNCATEGORIZED = '未分类'  # 唯一的默认分类目录名
+
+
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = sqlite3.connect(DB_NAME)
+        db.row_factory = sqlite3.Row
+        g._database = db
+    return db
+
+
+def close_db(exception=None):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
+        g._database = None
+
+
+app.teardown_appcontext(close_db)
+
+
+def invalidate_note_index_cache():
+    global NOTE_INDEX_CACHE, NOTE_INDEX_CACHE_MTIME
+    NOTE_INDEX_CACHE = None
+    NOTE_INDEX_CACHE_MTIME = None
+
+
+def get_note_index_signature():
+    latest_mtime = 0
+    if os.path.exists(app.config['UPLOAD_FOLDER']):
+        for root, dirs, files in os.walk(app.config['UPLOAD_FOLDER']):
+            try:
+                latest_mtime = max(latest_mtime, os.path.getmtime(root))
+            except OSError:
+                pass
+            for fname in files:
+                fpath = os.path.join(root, fname)
+                try:
+                    latest_mtime = max(latest_mtime, os.path.getmtime(fpath))
+                except OSError:
+                    continue
+    return latest_mtime
+
+
+def get_note_index_state():
+    ensure_uncategorized()
+    latest_mtime = get_note_index_signature()
+
+    categories = {}
+    if os.path.exists(app.config['UPLOAD_FOLDER']):
+        for item in os.listdir(app.config['UPLOAD_FOLDER']):
+            path = os.path.join(app.config['UPLOAD_FOLDER'], item)
+            if os.path.isdir(path):
+                categories[item] = []
+
+    if os.path.exists(app.config['UPLOAD_FOLDER']):
+        for root, dirs, files in os.walk(app.config['UPLOAD_FOLDER']):
+            for fname in files:
+                ext = fname.rsplit('.', 1)[-1].lower() if '.' in fname else ''
+                if ext not in ('md', 'pdf'):
+                    continue
+                fpath = os.path.join(root, fname)
+                rel = os.path.relpath(fpath, app.config['UPLOAD_FOLDER'])
+                if os.sep in rel:
+                    category = os.path.dirname(rel).replace('\\', '/')
+                    category = category if category != '.' else UNCATEGORIZED
+                else:
+                    category = UNCATEGORIZED
+
+                mtime = os.path.getmtime(fpath)
+                entry = {
+                    'filename': fname,
+                    'title': fname.rsplit('.', 1)[0] if '.' in fname else fname,
+                    'mtime': datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M'),
+                    'mtime_ts': mtime,
+                    'category': category,
+                    'full_path': rel.replace('\\', '/'),
+                    'file_type': ext,
+                    'is_markdown': ext == 'md',
+                }
+
+                if category not in categories:
+                    categories[category] = []
+                categories[category].append(entry)
+
+    for cat in categories:
+        categories[cat].sort(key=lambda x: x['mtime_ts'], reverse=True)
+
+    return categories, latest_mtime
+
+
+def get_note_index():
+    global NOTE_INDEX_CACHE, NOTE_INDEX_CACHE_MTIME
+    if NOTE_INDEX_CACHE is not None and NOTE_INDEX_CACHE_MTIME == get_note_index_signature():
+        return NOTE_INDEX_CACHE
+
+    categories, latest_mtime = get_note_index_state()
+    NOTE_INDEX_CACHE = categories
+    NOTE_INDEX_CACHE_MTIME = latest_mtime
+    return NOTE_INDEX_CACHE
 
 def ensure_uncategorized():
     """确保未分类目录存在"""
@@ -115,9 +220,15 @@ def get_categories_list():
     return subs
 
 
+def get_direct_db_connection():
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
 def _sync_fts_insert(rel_path, title, content, category):
     """向 FTS 表插入（或替换）一条记录"""
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_direct_db_connection()
     c = conn.cursor()
     c.execute('INSERT OR REPLACE INTO notes_fts (path, title, content, category) VALUES (?, ?, ?, ?)',
               (rel_path, title, content, category))
@@ -127,7 +238,7 @@ def _sync_fts_insert(rel_path, title, content, category):
 
 def _sync_fts_delete(rel_path):
     """从 FTS 表删除一条记录"""
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_direct_db_connection()
     c = conn.cursor()
     c.execute('DELETE FROM notes_fts WHERE path = ?', (rel_path,))
     conn.commit()
@@ -167,7 +278,7 @@ def _build_snippet(content, keyword, radius=80):
     return snippet
 
 def init_db():
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_direct_db_connection()
     c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS essays (
@@ -230,7 +341,7 @@ ensure_uncategorized()
 
 def rebuild_fts_from_files():
     """把 uploads/ 下所有 .md 文件一次性灌入 FTS 表（幂等，只在 FTS 为空时执行）"""
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_direct_db_connection()
     c = conn.cursor()
     c.execute('SELECT COUNT(*) FROM notes_fts')
     count = c.fetchone()[0]
@@ -274,12 +385,8 @@ def home():
 # ===== 随笔区 =====
 @app.route('/essays')
 def essays():
-    conn = sqlite3.connect(DB_NAME)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute('SELECT * FROM essays ORDER BY created_at DESC')
-    rows = c.fetchall()
-    conn.close()
+    db = get_db()
+    rows = db.execute('SELECT * FROM essays ORDER BY created_at DESC').fetchall()
     return render_template('essays.html', essays=rows)
 
 @app.route('/essays/add', methods=['POST'])
@@ -297,7 +404,7 @@ def add_essay():
         if not password:
             flash('使用"寒食季"发布需要密码', 'error')
             return redirect(url_for('essays'))
-        if password != os.environ.get('HANSHIJI_PASSWORD', '1992634518'):
+        if password != HANSHIJI_PASSWORD:
             flash('密码错误', 'error')
             return redirect(url_for('essays'))
 
@@ -316,30 +423,23 @@ def add_essay():
         if ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']:
             sf = secure_filename(file.filename)
             # 加时间戳防止重名
-            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+            timestamp = datetime.now(tz=CST).strftime('%Y%m%d%H%M%S')
             image_filename = f'{timestamp}_{sf}'
             file.save(os.path.join(app.config['SNIPPET_IMAGES'], image_filename))
 
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    local_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    c.execute('INSERT INTO essays (content, image_path, created_at, author_name, author_type) VALUES (?, ?, ?, ?, ?)',
-              (content, image_filename, local_time, author_name, 'protected' if author_name == '寒食季' else 'public'))
-    conn.commit()
-    conn.close()
+    db = get_db()
+    local_time = datetime.now(tz=CST).strftime('%Y-%m-%d %H:%M:%S')
+    db.execute('INSERT INTO essays (content, image_path, created_at, author_name, author_type) VALUES (?, ?, ?, ?, ?)',
+               (content, image_filename, local_time, author_name, 'protected' if author_name == '寒食季' else 'public'))
+    db.commit()
     flash('发布成功！', 'success')
     return redirect(url_for('essays'))
 
 @app.route('/essays/delete/<int:essay_id>', methods=['POST'])
 def delete_essay(essay_id):
-    conn = sqlite3.connect(DB_NAME)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    # 先查图片路径和作者再删
-    c.execute('SELECT image_path, author_name FROM essays WHERE id = ?', (essay_id,))
-    row = c.fetchone()
+    db = get_db()
+    row = db.execute('SELECT image_path, author_name FROM essays WHERE id = ?', (essay_id,)).fetchone()
     if not row:
-        conn.close()
         flash('随笔不存在', 'error')
         return redirect(url_for('essays'))
 
@@ -347,11 +447,9 @@ def delete_essay(essay_id):
     if row['author_name'] == '寒食季':
         password = request.form.get('password', '').strip()
         if not password:
-            conn.close()
             flash('删除"寒食季"的随笔需要密码', 'error')
             return redirect(url_for('essays'))
-        if password != os.environ.get('HANSHIJI_PASSWORD', '1992634518'):
-            conn.close()
+        if password != HANSHIJI_PASSWORD:
             flash('密码错误', 'error')
             return redirect(url_for('essays'))
 
@@ -359,9 +457,8 @@ def delete_essay(essay_id):
         img_path = os.path.join(app.config['SNIPPET_IMAGES'], row['image_path'])
         if os.path.exists(img_path):
             os.remove(img_path)
-    c.execute('DELETE FROM essays WHERE id = ?', (essay_id,))
-    conn.commit()
-    conn.close()
+    db.execute('DELETE FROM essays WHERE id = ?', (essay_id,))
+    db.commit()
     flash('已删除', 'success')
     return redirect(url_for('essays'))
 
@@ -373,85 +470,29 @@ def edit_essay(essay_id):
         return {'error': '内容不能为空'}, 400
 
     # 先查作者，寒食季的随笔需要密码验证
-    conn = sqlite3.connect(DB_NAME)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute('SELECT author_name FROM essays WHERE id = ?', (essay_id,))
-    row = c.fetchone()
+    db = get_db()
+    row = db.execute('SELECT author_name FROM essays WHERE id = ?', (essay_id,)).fetchone()
     if not row:
-        conn.close()
         return {'error': '随笔不存在'}, 404
 
     if row['author_name'] == '寒食季':
         password = request.form.get('password', '').strip()
         if not password:
-            conn.close()
             return {'error': '编辑寒食季的随笔需要密码'}, 403
-        if password != os.environ.get('HANSHIJI_PASSWORD', '1992634518'):
-            conn.close()
+        if password != HANSHIJI_PASSWORD:
             return {'error': '密码错误'}, 403
 
-    c.execute('UPDATE essays SET content = ? WHERE id = ?', (content, essay_id))
-    conn.commit()
-    conn.close()
+    db.execute('UPDATE essays SET content = ? WHERE id = ?', (content, essay_id))
+    db.commit()
     return {'success': True}, 200
 
 # ===== 笔记区 =====
 @app.route('/notes')
 def notes():
-    # 结构: {'分类名': [{filename, title, mtime, mtime_ts, category, full_path}, ...]}
-    # 第一步：预建所有分类骨架（确保空文件夹也显示）
-    categories = {}
-    ensure_uncategorized()
-    if os.path.exists(app.config['UPLOAD_FOLDER']):
-        for item in os.listdir(app.config['UPLOAD_FOLDER']):
-            path = os.path.join(app.config['UPLOAD_FOLDER'], item)
-            if os.path.isdir(path):
-                categories[item] = []
-
-    # 第二步：遍历所有支持的文件，填入对应分类
-    if os.path.exists(app.config['UPLOAD_FOLDER']):
-        for root, dirs, files in os.walk(app.config['UPLOAD_FOLDER']):
-            for fname in files:
-                ext = fname.rsplit('.', 1)[-1].lower() if '.' in fname else ''
-                if ext not in ('md', 'pdf'):
-                    continue
-                fpath = os.path.join(root, fname)
-                rel = os.path.relpath(fpath, app.config['UPLOAD_FOLDER'])
-                if os.sep in rel:
-                    category = os.path.dirname(rel).replace('\\', '/')
-                    category = category if category != '.' else UNCATEGORIZED
-                else:
-                    category = UNCATEGORIZED
-
-                mtime = os.path.getmtime(fpath)
-                mtime_str = datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M')
-
-                # html_content 不再预渲染（节省内存）；单篇阅读时在 current_note 中单独渲染
-                entry = {
-                    'filename': fname,
-                    'title': fname.rsplit('.', 1)[0] if '.' in fname else fname,
-                    'mtime': mtime_str,
-                    'mtime_ts': mtime,
-                    'category': category,
-                    'full_path': rel.replace('\\', '/'),
-                    'file_type': ext,
-                    'is_markdown': ext == 'md',
-                }
-
-                if category not in categories:
-                    categories[category] = []
-                categories[category].append(entry)
-
-    # 各分类内部按时间倒序
-    for cat in categories:
-        categories[cat].sort(key=lambda x: x['mtime_ts'], reverse=True)
-
-    # 复用 get_categories_list() 获取排序后的分类列表（未分类固定在最后）
+    categories = get_note_index()
     cats_sorted = get_categories_list()
-    categories_list = cats_sorted  # 下拉菜单与分类树同序
+    categories_list = cats_sorted
 
-    # 检查是否有指定查看某篇笔记
     selected = request.args.get('note')
     current_note = None
 
@@ -484,13 +525,8 @@ def notes():
                     'is_markdown': False,
                 }
 
-    # 读取 DDL 数据
-    conn_ddl = sqlite3.connect(DB_NAME)
-    conn_ddl.row_factory = sqlite3.Row
-    c_ddl = conn_ddl.cursor()
-    c_ddl.execute('SELECT * FROM ddls ORDER BY target_date ASC')
-    ddls = c_ddl.fetchall()
-    conn_ddl.close()
+    db = get_db()
+    ddls = db.execute('SELECT * FROM ddls ORDER BY target_date ASC').fetchall()
 
     return render_template('notes.html',
                            categories=categories,
@@ -544,6 +580,7 @@ def upload_note():
         counter += 1
 
     file.save(fpath)
+    invalidate_note_index_cache()
 
     # 读取文件内容用于 FTS 索引（仅 .md 文件）
     fts_content = ''
@@ -578,6 +615,7 @@ def delete_note():
     try:
         _sync_fts_delete(full_path)
         os.remove(real_path)
+        invalidate_note_index_cache()
         flash('已删除', 'success')
     except Exception as e:
         flash('删除失败：' + str(e), 'error')
@@ -603,6 +641,7 @@ def add_category():
         return redirect(url_for('notes'))
     try:
         os.makedirs(cat_folder, exist_ok=True)
+        invalidate_note_index_cache()
         flash('分类已创建', 'success')
     except Exception as e:
         flash('创建失败：' + str(e), 'error')
@@ -631,12 +670,11 @@ def delete_category(category_name):
 
     try:
         shutil.rmtree(cat_folder)
+        invalidate_note_index_cache()
         # 同步 FTS：删除该分类下所有笔记记录
-        conn = sqlite3.connect(DB_NAME)
-        c = conn.cursor()
-        c.execute('DELETE FROM notes_fts WHERE category = ?', (category_name,))
-        conn.commit()
-        conn.close()
+        db = get_db()
+        db.execute('DELETE FROM notes_fts WHERE category = ?', (category_name,))
+        db.commit()
         flash('分类已删除', 'success')
     except Exception as e:
         flash('删除失败：' + str(e), 'error')
@@ -664,6 +702,7 @@ def create_md():
     try:
         with open(fpath, 'w', encoding='utf-8') as f:
             f.write('')
+        invalidate_note_index_cache()
         rel_path = (category + '/' + filename).replace('\\', '/')
         # 同步 FTS（新建空笔记，内容为空）
         _sync_fts_insert(rel_path, filename.replace('.md', ''), '', category)
@@ -717,20 +756,16 @@ def add_ddl():
     title = request.form.get('title', '').strip()
     target_date = request.form.get('target_date', '').strip()
     if title and target_date:
-        conn = sqlite3.connect(DB_NAME)
-        c = conn.cursor()
-        c.execute('INSERT INTO ddls (title, target_date) VALUES (?, ?)', (title, target_date))
-        conn.commit()
-        conn.close()
+        db = get_db()
+        db.execute('INSERT INTO ddls (title, target_date) VALUES (?, ?)', (title, target_date))
+        db.commit()
     return redirect(url_for('notes'))
 
 @app.route('/delete_ddl/<int:ddl_id>', methods=['POST'])
 def delete_ddl(ddl_id):
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute('DELETE FROM ddls WHERE id = ?', (ddl_id,))
-    conn.commit()
-    conn.close()
+    db = get_db()
+    db.execute('DELETE FROM ddls WHERE id = ?', (ddl_id,))
+    db.commit()
     return redirect(url_for('notes'))
 
 # ===== Markdown 文件在线编辑 API =====
@@ -787,9 +822,7 @@ def search_notes():
     if not q:
         return {'results': []}, 200
 
-    conn = sqlite3.connect(DB_NAME)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
+    db = get_db()
 
     # 始终执行 LIKE 搜索（FTS5 默认分词器对中文/混合内容支持差）
     # FTS MATCH 结果与 LIKE 取并集，以 FTS rank 优先
@@ -797,27 +830,25 @@ def search_notes():
 
     try:
         fts_query = q.replace('"', '""')
-        c.execute('''
+        fts_rows = db.execute('''
             SELECT path, title, content, category,
                    bm25(notes_fts, 3) as rank
             FROM notes_fts
             WHERE notes_fts MATCH ?
             ORDER BY rank
             LIMIT 10
-        ''', (fts_query,))
-        fts_rows = c.fetchall()
+        ''', (fts_query,)).fetchall()
     except Exception:
         fts_rows = []
 
     # LIKE 搜索
-    c.execute('''
+    like_rows = db.execute('''
         SELECT path, title, content, category
         FROM notes_fts
         WHERE title LIKE ? OR content LIKE ?
         ORDER BY path
         LIMIT 30
-    ''', (like_q, like_q))
-    like_rows = c.fetchall()
+    ''', (like_q, like_q)).fetchall()
 
     # 去重合并：fts_rows 优先，like_rows 补充
     seen_paths = set()
@@ -844,7 +875,6 @@ def search_notes():
             'category': row['category']
         })
 
-    conn.close()
     return {'results': results}, 200
 
 # ===== 获取局域网IP（供前端生成二维码） =====

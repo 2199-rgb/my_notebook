@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>留言墙 - 寒食季的知识库</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='messages.css') }}">
+</head>
+<body>
+    <header>
+        <div class="brand">
+            <a href="{{ url_for('home') }}">寒食季的交大生存日记</a>
+            <span class="divider">/</span>
+            <span class="current-page">留言墙</span>
+        </div>
+        <nav>
+            <a href="{{ url_for('essays') }}">随笔区</a>
+            <a href="{{ url_for('notes') }}">笔记区</a>
+            <a href="{{ url_for('messages') }}" class="active">留言墙</a>
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙 暗黑模式</button>
+            {% if is_admin %}
+            <form method="POST" action="{{ url_for('logout') }}" style="display:inline;">
+                <input type="hidden" name="next" value="{{ request.full_path }}">
+                <button class="theme-toggle" type="submit">退出管理</button>
+            </form>
+            {% else %}
+            <a href="{{ url_for('login', next=request.full_path) }}">管理员登录</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    <main class="messages-main">
+        {% with flashed = get_flashed_messages(with_categories=true) %}
+            {% for category, message in flashed %}
+                <div class="flash {{ category }}">{{ message | escape }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <section class="message-compose">
+            <div class="compose-copy">
+                <h1>留言墙</h1>
+                <p>给这个小站留一张纸条。</p>
+            </div>
+            <form class="message-form" method="POST" action="{{ url_for('add_message') }}">
+                <input type="text" name="website" class="hp-field" tabindex="-1" autocomplete="off">
+                <div class="form-grid">
+                    <input name="author_name" maxlength="24" placeholder="昵称" autocomplete="nickname">
+                </div>
+                <textarea name="content" maxlength="1200" placeholder="写下想说的话..." required></textarea>
+                <div class="form-actions">
+                    <span>请温柔一点，世界已经够吵了。</span>
+                    <button type="submit">提交留言</button>
+                </div>
+            </form>
+        </section>
+
+        {% if is_admin %}
+        <section class="moderation-bar">
+            <div>
+                <strong>管理模式</strong>
+                <span>
+                    {% if comments_require_approval %}
+                    {{ pending_count }} 条待审核
+                    {% else %}
+                    审核功能已保留，当前关闭
+                    {% endif %}
+                </span>
+            </div>
+            {% if moderation %}
+            <a href="{{ url_for('messages') }}">查看公开留言</a>
+            {% else %}
+            <a href="{{ url_for('messages', view='moderation') }}">进入管理视图</a>
+            {% endif %}
+        </section>
+        {% endif %}
+
+        <section class="message-list">
+            {% for comment in comments %}
+                {% include '_comment.html' %}
+            {% else %}
+            <div class="empty-messages">
+                <p>这里还没有留言。</p>
+                <span>第一张纸条等你贴上去。</span>
+            </div>
+            {% endfor %}
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='common.js') }}"></script>
+    <script src="{{ url_for('static', filename='messages.js') }}"></script>
+</body>
+</html>

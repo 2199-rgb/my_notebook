@@ -13,6 +13,7 @@
         <nav>
             <a href="{{ url_for('essays') }}">随笔区</a>
             <a href="{{ url_for('notes') }}">笔记区</a>
+            <a href="{{ url_for('messages') }}">留言墙</a>
             <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙 暗黑模式</button>
         </nav>
     </header>
@@ -24,6 +25,7 @@
             <div class="landing-btns">
                 <a href="{{ url_for('essays') }}" class="ghost-btn">进入随笔区</a>
                 <a href="{{ url_for('notes') }}" class="ghost-btn">进入笔记区</a>
+                <a href="{{ url_for('messages') }}" class="ghost-btn">去留言墙</a>
             </div>
         </div>
     </div>

@@ -72,6 +72,28 @@ def init_db():
             path, title, content, category
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            target_type TEXT NOT NULL DEFAULT 'site',
+            target_id INTEGER,
+            parent_id INTEGER,
+            author_name TEXT NOT NULL,
+            author_email_hash TEXT DEFAULT '',
+            content TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            is_pinned INTEGER NOT NULL DEFAULT 0,
+            is_admin_reply INTEGER NOT NULL DEFAULT 0,
+            ip_hash TEXT DEFAULT '',
+            user_agent_hash TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(parent_id) REFERENCES comments(id)
+        )
+    ''')
+    c.execute('CREATE INDEX IF NOT EXISTS idx_comments_target ON comments(target_type, target_id, status)')
+    c.execute('CREATE INDEX IF NOT EXISTS idx_comments_parent ON comments(parent_id)')
+    c.execute('CREATE INDEX IF NOT EXISTS idx_comments_created ON comments(created_at)')
 
     c.execute("SELECT value FROM meta WHERE key = 'tz_fixed'")
     row = c.fetchone()

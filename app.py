@@ -7,6 +7,7 @@ import config
 from db import close_db, init_db
 from routes.essays import register_routes as register_essay_routes
 from routes.main import register_routes as register_main_routes
+from routes.messages import register_routes as register_message_routes
 from routes.notes import register_routes as register_note_routes
 from services.auth import is_admin
 from services.network import get_lan_ip
@@ -39,6 +40,7 @@ def create_app():
 
     register_main_routes(app)
     register_essay_routes(app)
+    register_message_routes(app)
     register_note_routes(app)
 
     return app

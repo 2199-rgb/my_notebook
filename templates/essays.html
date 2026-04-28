@@ -19,6 +19,7 @@
         <nav>
             <a href="{{ url_for('essays') }}" class="active">随笔区</a>
             <a href="{{ url_for('notes') }}">笔记区</a>
+            <a href="{{ url_for('messages') }}">留言墙</a>
             <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙 暗黑模式</button>
         </nav>
     </header>
@@ -193,7 +194,6 @@
     <div class="qr-modal-overlay" id="qrModal">
         <div class="qr-modal-box">
             <div class="qr-modal-title">📱 移动端阅读</div>
-            <p class="qr-modal-sub">用手机或 iPad 扫描二维码，沉浸阅读随笔</p>
             <div id="qrcode" style="display:flex;align-items:center;justify-content:center;padding:8px 0;"></div>
             <p id="qrUrl" class="qr-url-text"></p>
             <div class="qr-modal-actions">

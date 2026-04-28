@@ -1,6 +1,6 @@
 # my_notebook
 
-一个基于 Flask 的个人知识库网站，包含随笔区、Markdown/PDF 笔记区、分类管理、DDL 倒计时和全文搜索。
+一个基于 Flask 的个人知识库网站，包含随笔区、Markdown/PDF 笔记区、留言墙、分类管理、DDL 倒计时和全文搜索。
 
 ## 本地运行
 
@@ -34,6 +34,12 @@ APP_HOST=0.0.0.0
 APP_PORT=5001
 ```
 
+留言墙默认不需要审核，访客留言会直接显示。若之后想重新启用审核：
+
+```text
+COMMENTS_REQUIRE_APPROVAL=1
+```
+
 ## 数据目录
 
 这些目录会在运行时自动创建，并且不会提交到 Git：
@@ -56,9 +62,11 @@ db.py               # SQLite 连接和数据库初始化
 routes/             # 页面和 API 路由
   main.py           # 首页、登录、退出、局域网 IP API
   essays.py         # 随笔区
+  messages.py       # 留言墙、审核、回复、软删除
   notes.py          # 笔记区、分类、DDL、Markdown API
 services/           # 可复用业务逻辑
   auth.py           # 管理员登录状态和权限装饰器
+  comments.py       # 留言创建、审核状态、置顶和回复查询
   markdown_render.py
   network.py
   note_index.py

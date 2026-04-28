@@ -87,6 +87,7 @@
         <nav>
             <a href="{{ url_for('essays') }}">随笔区</a>
             <a href="{{ url_for('notes') }}">笔记区</a>
+            <a href="{{ url_for('messages') }}">留言墙</a>
             <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙 暗黑模式</button>
         </nav>
     </header>
@@ -99,7 +100,6 @@
                 {% endfor %}
             {% endwith %}
             <h1 class="login-title">进入管理模式</h1>
-            <p class="login-sub">登录后可以上传、编辑、移动到回收站和管理 DDL；未登录时仍可阅读。</p>
             <form method="POST" action="{{ url_for('login') }}">
                 <input type="hidden" name="next" value="{{ next_url }}">
                 <input class="login-input" type="password" name="password" placeholder="管理员密码" autocomplete="current-password" required autofocus>

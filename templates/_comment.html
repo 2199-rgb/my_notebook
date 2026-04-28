@@ -1,0 +1,75 @@
+<article class="message-card status-{{ comment.status }}" id="comment-{{ comment.id }}">
+    <div class="message-head">
+        <div class="message-avatar">{{ comment.author_name[0] }}</div>
+        <div class="message-meta">
+            <div class="message-name-row">
+                <strong>{{ comment.author_name }}</strong>
+                {% if comment.is_admin_reply %}
+                <span class="badge admin">管理员</span>
+                {% endif %}
+                {% if comment.is_pinned %}
+                <span class="badge pinned">置顶</span>
+                {% endif %}
+                {% if is_admin and comment.status != 'visible' %}
+                <span class="badge state">{{ comment.status }}</span>
+                {% endif %}
+            </div>
+            <time>{{ comment.created_at }}</time>
+        </div>
+    </div>
+
+    <div class="message-content">{{ comment.content | escape | replace('\n', '<br>') | safe }}</div>
+
+    <div class="message-actions">
+        <button type="button" class="link-button" data-reply-toggle="{{ comment.id }}">回复</button>
+        {% if is_admin %}
+            {% if comment.status != 'visible' %}
+            <form method="POST" action="{{ url_for('approve_message', comment_id=comment.id) }}">
+                <button type="submit">通过</button>
+            </form>
+            {% endif %}
+            {% if comment.status == 'visible' %}
+            <form method="POST" action="{{ url_for('hide_message', comment_id=comment.id) }}">
+                <button type="submit">隐藏</button>
+            </form>
+            {% elif comment.status == 'hidden' %}
+            <form method="POST" action="{{ url_for('restore_message', comment_id=comment.id) }}">
+                <button type="submit">恢复</button>
+            </form>
+            {% endif %}
+            {% if comment.is_pinned %}
+            <form method="POST" action="{{ url_for('unpin_message', comment_id=comment.id) }}">
+                <button type="submit">取消置顶</button>
+            </form>
+            {% else %}
+            <form method="POST" action="{{ url_for('pin_message', comment_id=comment.id) }}">
+                <button type="submit">置顶</button>
+            </form>
+            {% endif %}
+            <form method="POST" action="{{ url_for('delete_message', comment_id=comment.id) }}">
+                <button type="submit" class="danger-action">软删除</button>
+            </form>
+        {% endif %}
+    </div>
+
+    <form class="reply-form" id="reply-form-{{ comment.id }}" method="POST" action="{{ url_for('add_message') }}">
+        <input type="hidden" name="parent_id" value="{{ comment.id }}">
+        <input type="text" name="website" class="hp-field" tabindex="-1" autocomplete="off">
+        <div class="form-grid">
+            <input name="author_name" maxlength="24" placeholder="{% if is_admin %}寒食季{% else %}昵称{% endif %}" value="{% if is_admin %}寒食季{% endif %}">
+        </div>
+        <textarea name="content" maxlength="1200" placeholder="回复 {{ comment.author_name }}..." required></textarea>
+        <div class="form-actions">
+            <span>{% if is_admin %}管理员回复会直接显示。{% else %}回复会直接显示。{% endif %}</span>
+            <button type="submit">发布回复</button>
+        </div>
+    </form>
+
+    {% if comment.replies %}
+    <div class="message-replies">
+        {% for comment in comment.replies %}
+            {% include '_comment.html' %}
+        {% endfor %}
+    </div>
+    {% endif %}
+</article>

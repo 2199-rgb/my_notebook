@@ -20,3 +20,4 @@ APP_DEBUG = os.environ.get('APP_DEBUG', '1').lower() in ('1', 'true', 'yes', 'on
 APP_HOST = os.environ.get('APP_HOST', '127.0.0.1')
 APP_PORT = int(os.environ.get('APP_PORT', '5001'))
 MAX_CONTENT_LENGTH = 50 * 1024 * 1024
+COMMENTS_REQUIRE_APPROVAL = os.environ.get('COMMENTS_REQUIRE_APPROVAL', '0').lower() in ('1', 'true', 'yes', 'on')

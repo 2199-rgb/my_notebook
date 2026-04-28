@@ -1,0 +1,205 @@
+        /* ===== 日间模式变量 ===== */
+        :root {
+            --bg:           #fafaf9;
+            --text:         #2a2a2a;
+            --text-light:   #8a8a8a;
+            --primary:      #4a90d9;
+            --primary-dark: #3a7bc8;
+            --border:       rgba(0, 0, 0, 0.12);
+        }
+
+        /* ===== 暗黑模式覆盖 ===== */
+        body.dark-mode {
+            --bg:           #111111;
+            --text:         #e0e0e0;
+            --text-light:   #666666;
+            --primary:      #7ab0e8;
+            --primary-dark: #5a9fd4;
+            --border:       rgba(255, 255, 255, 0.12);
+        }
+
+        /* ===== 背景 ===== */
+        body {
+            background: var(--bg) !important;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: var(--text);
+            min-height: 100vh;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* ===== 页面主体（全屏居中） ===== */
+        .landing {
+            min-height: calc(100vh - 65px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px 60px;
+            box-sizing: border-box;
+        }
+
+        /* ===== 诗意内容容器 ===== */
+        .landing-center {
+            text-align: center;
+            animation: fadeInUp 1.8s ease both;
+        }
+
+        /* ===== 主标题 ===== */
+        .landing-title {
+            font-size: 52px;
+            font-weight: 300;
+            color: var(--text);
+            letter-spacing: 12px;
+            margin-bottom: 52px;
+            opacity: 0.92;
+            font-family: "Noto Serif SC", "Songti SC", "Kaiti", "STKaiti", "SimSun", serif;
+            transition: color 0.3s ease;
+        }
+
+        /* ===== 动态生存拷问 ===== */
+        #dynamic-greeting {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: 4px;
+            color: var(--text);
+            font-family: "Noto Serif SC", "Songti SC", "Kaiti", "STKaiti", "SimSun", serif;
+            margin-bottom: 44px;
+            animation: greetingBreath 4s ease-in-out infinite;
+            transition: color 0.3s ease;
+        }
+
+        @keyframes greetingBreath {
+            0%, 100% { opacity: 0.80; }
+            50% { opacity: 1; }
+        }
+
+        /* ===== 诗句（随机展示） ===== */
+        .poetry-text {
+            font-family: "Noto Serif SC", "Songti SC", "Kaiti", "STKaiti", "SimSun", serif;
+            font-size: 19px;
+            font-weight: 400;
+            color: var(--text-light);
+            letter-spacing: 6px;
+            line-height: 2.5;
+            text-align: center;
+            transition: color 0.4s ease;
+            margin-bottom: 56px;
+            animation: fadeInPoetry 2.2s ease-in-out both;
+        }
+
+        body.dark-mode .poetry-text {
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.08);
+        }
+
+        /* ===== 按钮容器 ===== */
+        .landing-btns {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* ===== 幽灵胶囊按钮 ===== */
+        .ghost-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            padding: 11px 36px;
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            letter-spacing: 1.5px;
+            text-decoration: none;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.35s ease;
+            z-index: 1;
+        }
+
+        .ghost-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--primary);
+            transform: scaleX(0);
+            transform-origin: left center;
+            transition: transform 0.35s ease;
+            z-index: -1;
+            border-radius: 100px;
+        }
+
+        .ghost-btn:hover {
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        .ghost-btn:hover::before {
+            transform: scaleX(1);
+        }
+
+        /* ===== 淡入上浮动画 ===== */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(28px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== 诗句淡入动画（墨水洇开感） ===== */
+        @keyframes fadeInPoetry {
+            from {
+                opacity: 0;
+                filter: blur(2px);
+            }
+            to {
+                opacity: 1;
+                filter: blur(0);
+            }
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 500px) {
+            .landing-title {
+                font-size: 36px;
+                letter-spacing: 8px;
+                margin-bottom: 40px;
+            }
+            #dynamic-greeting {
+                font-size: 22px;
+                letter-spacing: 2px;
+            }
+            .poetry-text {
+                font-size: 15px;
+                letter-spacing: 3px;
+                line-height: 2.2;
+                margin-bottom: 40px;
+            }
+            .landing-btns {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        /* 极限小屏 360px */
+        @media (max-width: 360px) {
+            .landing-title {
+                font-size: 28px;
+                letter-spacing: 5px;
+                margin-bottom: 32px;
+            }
+            #dynamic-greeting {
+                font-size: 18px;
+                letter-spacing: 1px;
+            }
+            .poetry-text {
+                font-size: 14px;
+                letter-spacing: 2px;
+            }
+        }

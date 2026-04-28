@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员登录 - 寒食季的知识库</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .login-wrap {
+            min-height: calc(100vh - 88px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 16px;
+        }
+        .login-panel {
+            width: min(420px, 100%);
+            background: var(--bg-card);
+            border: 1px solid var(--border-item);
+            border-radius: 8px;
+            padding: 28px;
+            box-shadow: var(--shadow-card);
+        }
+        .login-title {
+            margin: 0 0 8px;
+            font-size: 22px;
+            color: var(--text-primary);
+        }
+        .login-sub {
+            margin: 0 0 22px;
+            color: var(--text-muted);
+            line-height: 1.7;
+            font-size: 14px;
+        }
+        .login-input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border-item);
+            background: var(--bg-page);
+            color: var(--text-primary);
+            font-size: 15px;
+            outline: none;
+        }
+        .login-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+        .login-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 18px;
+        }
+        .login-submit,
+        .login-back {
+            min-height: 40px;
+            border-radius: 6px;
+            padding: 0 16px;
+            border: 1px solid var(--border-item);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .login-submit {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+        .login-back {
+            color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="brand">
+            <a href="{{ url_for('home') }}">寒食季的交大生存日记</a>
+            <span class="divider">/</span>
+            <span class="current-page">管理员登录</span>
+        </div>
+        <nav>
+            <a href="{{ url_for('essays') }}">随笔区</a>
+            <a href="{{ url_for('notes') }}">笔记区</a>
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙 暗黑模式</button>
+        </nav>
+    </header>
+
+    <main class="login-wrap">
+        <section class="login-panel">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message | escape }}</div>
+                {% endfor %}
+            {% endwith %}
+            <h1 class="login-title">进入管理模式</h1>
+            <p class="login-sub">登录后可以上传、编辑、移动到回收站和管理 DDL；未登录时仍可阅读。</p>
+            <form method="POST" action="{{ url_for('login') }}">
+                <input type="hidden" name="next" value="{{ next_url }}">
+                <input class="login-input" type="password" name="password" placeholder="管理员密码" autocomplete="current-password" required autofocus>
+                <div class="login-actions">
+                    <button class="login-submit" type="submit">登录</button>
+                    <a class="login-back" href="{{ next_url }}">返回</a>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='common.js') }}"></script>
+</body>
+</html>

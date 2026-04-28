@@ -4,6 +4,9 @@ blog.db
 # 上传的笔记和图片（用户数据，不纳入版本控制）
 uploads/
 static/snippet_images/
+trash/
+*.log
+.env
 
 # Claude Code 内部文件
 .claude/
